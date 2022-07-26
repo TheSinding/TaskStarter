@@ -2,8 +2,8 @@
 import { UserIdentityRef } from "azure-devops-node-api/interfaces/GalleryInterfaces";
 import { WorkItem } from "azure-devops-node-api/interfaces/WorkItemTrackingInterfaces";
 import { commands, Extension, extensions, QuickPickItem, Uri, window } from "vscode";
-import { GitExtension, API as BuiltInGitApi } from "../@types/git";
-import { listTasks } from "../api";
+import { GitExtension, API as BuiltInGitApi } from "../../@types/git";
+import { listTasks } from "../../api";
 
 
 const getBuiltInGitApi = async (): Promise<BuiltInGitApi | undefined> => {
@@ -42,6 +42,7 @@ export const startNewTask = () => {
 	const getTaskOptions = (): Promise<QuickPickItem[]> => {
 		return new Promise(async (resolve) => {
 			const tasks = await listTasks();
+			if (!tasks) { resolve([]); }
 			resolve(tasks.filter(taskFilter).map(taskMapper));
 		});
 	};
@@ -60,11 +61,9 @@ export const startNewTask = () => {
 			if (task) {
 				const branchName = `feature/${task.description}-${task.label.replace(/ /g, "-").replace(illegalCharsRegex, "")}`;
 				const confirmedBranchName = await window.showInputBox({ placeHolder: branchName, title: "New branch name", value: branchName });
-				if (!confirmedBranchName) { throw new Error("Canceled chaging task"); };
+				if (!confirmedBranchName) { throw new Error("Canceled changing task"); };
 
 				window.showInformationMessage("Checking out dev, pulling and starting new branch");
-				await mainRepo.checkout("develop");
-				await mainRepo.pull();
 				await mainRepo.createBranch(confirmedBranchName, true);
 				window.showInformationMessage(`Started task - ${task.label}`);
 			}

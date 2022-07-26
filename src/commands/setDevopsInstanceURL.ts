@@ -1,11 +1,11 @@
 import { commands, window } from "vscode";
-import { configuration } from "../configuration";
+import * as config from "../configuration";
 
 export const COMMAND = "taskstarter.setDevOpsInstanceURL";
 export const setDevOpsInstanceURL = () => {
 	const commandHandler = async () => {
 		const instanceURL = await window.showQuickPick(["https://dev.azure.com"]);
-		configuration.devopsProject = instanceURL;
+		config.update("devopsInstanceURL", instanceURL);
 	};
 	return commands.registerCommand(COMMAND, commandHandler);
 };
