@@ -26,7 +26,7 @@ First run the initialization process and input your DevOps PAT, organization, te
 This is probably not working.
 
 ## TODO
-See [https://github.com/users/TheSinding/projects/3](the project board)
+See [the project board](https://github.com/users/TheSinding/projects/3)
 
 ## DevOps PAT description
 
