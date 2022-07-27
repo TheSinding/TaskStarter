@@ -26,18 +26,18 @@ First run the initialization process and input your DevOps PAT, organization, te
 This is probably not working.
 
 ## TODO
-[ ] - order your task on top
-[ ] - Move the task you started to in progress
-[ ] - Put you on the picked task if the task is `unassigned`
-[ ] - more? 
-[ ] - Store PAT token somewhere else than `.vscode/settings.json`
-[ ] - Remove information about "checking out dev" because it's not.
+- [ ] - order your task on top
+- [ ] - Move the task you started to in progress
+- [ ] - Put you on the picked task if the task is `unassigned`
+- [ ] - more? 
+- [ ] - Store PAT token somewhere else than `.vscode/settings.json`
+- [ ] - Remove information about "checking out dev" because it's not.
 
 ## DevOps PAT description
 
 Token Permissions as a minimum
-Scope|Access
----|---
-User profile | `Read`
-Project and Team | `Read`
-Work Items | `Read`, `Write`, `Manage`
+| Scope            | Access                    |
+|------------------|---------------------------|
+| User profile     | `Read`                    |
+| Project and Team | `Read`                    |
+| Work Items       | `Read`, `Write`, `Manage` |
