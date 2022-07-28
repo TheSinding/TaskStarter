@@ -27,7 +27,8 @@ export function sanitize(input: string, separator = '-'): string {
 		/\[/g,
 		/\]/g,
 		/@/g,
-		/\!/g
+		/\!/g,
+		/\//g
 	];
 	output = toRemove.reduce((output, regexp) => {
 		return output.replace(regexp, '');
