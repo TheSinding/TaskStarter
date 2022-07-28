@@ -16,14 +16,9 @@ export function activate(context: vscode.ExtensionContext) {
 	console.log('Congratulations, your extension "taskstarter" is now active!');
 	initExt();
 
-	const setPATToken = setDevOpsPATToken();
-	const setOrganization = setDevOpsOrganization();
-
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
 	context.subscriptions.push(
-		setPATToken,
-		setOrganization,
+		setDevOpsPATToken(),
+		setDevOpsOrganization(),
 		setDevOpsInstanceURL(),
 		setDevopsProject(),
 		setDevopsTeam(),
