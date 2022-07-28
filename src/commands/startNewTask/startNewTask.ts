@@ -4,6 +4,9 @@ import { WorkItem } from "azure-devops-node-api/interfaces/WorkItemTrackingInter
 import { commands, Extension, extensions, QuickPickItem, Uri, window } from "vscode";
 import { GitExtension, API as BuiltInGitApi } from "../../@types/git";
 import { listTasks } from "../../api";
+import { logger } from "../../logger";
+import { sanitize } from "../../utils/sanitizeBranch";
+import * as config from '../../configuration';
 
 
 const getBuiltInGitApi = async (): Promise<BuiltInGitApi | undefined> => {
@@ -37,8 +40,6 @@ enum TaskFields {
 
 export const COMMAND = "taskstarter.startNewTask";
 export const startNewTask = () => {
-	const illegalCharsRegex = /^[\./]|\.\.|@{|[\/\.]$|^@$|[~^:\x00-\x20\x7F\s?*[\\]/g;
-
 	const getTaskOptions = (): Promise<QuickPickItem[]> => {
 		return new Promise(async (resolve) => {
 			const tasks = await listTasks();
@@ -49,6 +50,7 @@ export const startNewTask = () => {
 
 	const commandHandler = async () => {
 		try {
+			logger.debug("Getting tasks");
 			const gitApi = await getBuiltInGitApi();
 			if (!gitApi) { throw new Error("Could not find git API"); };
 
@@ -59,17 +61,24 @@ export const startNewTask = () => {
 			const task = await window.showQuickPick<QuickPickItem>(getTaskOptions());
 
 			if (task) {
-				const branchName = `feature/${task.description}-${task.label.replace(/ /g, "-").replace(illegalCharsRegex, "")}`;
+				let label = task.label;
+				if (config.get("customRegex")) {
+					const regex = new RegExp(config.get<string>("customRegex"), "g");
+					label = label.replaceAll(regex, "");
+				}
+				label = sanitize(label);
+
+				const branchName = `feature/${task.description}-${label}`;
 				const confirmedBranchName = await window.showInputBox({ placeHolder: branchName, title: "New branch name", value: branchName });
 				if (!confirmedBranchName) { throw new Error("Canceled changing task"); };
+				logger.debug(`Starting task: "${label}"`);
 
-				window.showInformationMessage("Checking out dev, pulling and starting new branch");
 				await mainRepo.createBranch(confirmedBranchName, true);
 				window.showInformationMessage(`Started task - ${task.label}`);
 			}
 
 		} catch (error: any) {
-			console.error(error);
+			logger.error(error);
 			window.showErrorMessage(error.message);
 		}
 	};

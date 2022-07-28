@@ -18,7 +18,7 @@ export const runInit = () => {
 			await commands.executeCommand(setTeamCommand);
 
 		} catch (error: any) {
-			console.error(error);
+			logger.error(error);
 			window.showErrorMessage(error.message);
 		}
 	};
