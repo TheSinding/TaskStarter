@@ -7,6 +7,7 @@
   "repository": {
     "url": "https://github.com/TheSinding/taskstarter"
   },
+  "icon": "images/icon128x128.png",
   "engines": {
     "vscode": "^1.67.0"
   },
@@ -22,6 +23,10 @@
     "configuration": {
       "title": "Task Starter",
       "properties": {
+        "taskstarter.customRegex": {
+          "type": "string",
+          "default": ""
+        },
         "taskstarter.devopsPATToken": {
           "type": "string",
           "default": "",

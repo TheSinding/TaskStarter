@@ -14,7 +14,8 @@ export enum ConfigurationKeys {
     DEVOPS_INSTANCE_URL = "devopsInstanceURL",
     DEVOPS_PROJECT = "devopsProject",
     DEVOPS_TEAM = "devopsTeam",
-    HIDE_INIT_PROMPT = "hideInitPrompt"
+    HIDE_INIT_PROMPT = "hideInitPrompt",
+    CUSTOM_REGEX = "customRegex"
 }
 
 let workspaceFolder: Uri | null = null;
