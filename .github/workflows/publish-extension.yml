@@ -12,6 +12,5 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: 16
-      - run: npm ci & npm i --location=global vsce
       - name: Publish to Visual Studio Marketplace
-      - run: vsce publish -p ${{ secrets.VS_MARKETPLACE_TOKEN }}
+        run: npm ci && npm i --location=global vsce && vsce publish -p ${{ secrets.VS_MARKETPLACE_TOKEN }}
