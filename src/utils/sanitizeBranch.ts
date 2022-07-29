@@ -44,7 +44,8 @@ export function sanitize(input: string, separator = '-'): string {
 
 	output = output.replace(/\/\./g, '/')
 		.replace(/\.lock/g, `${separator}lock`)
-		.replace(/\/+/g, '/');
+		.replace(/\/+/g, '/')
+		.replace(/-{3,}/g, separator);
 
 	return output;
 }
