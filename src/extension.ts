@@ -57,10 +57,10 @@ const setInitialized = () => {
 };
 
 const isInitialized = (): boolean =>
-	!!config.get("devopsPATToken") &&
-	!!config.get("devopsProject") &&
-	!!config.get("devopsTeam") &&
-	!!config.get("devopsOrganization");
+	!!config.getProjectKey("devopsPATToken") &&
+	!!config.getProjectKey("devopsProject") &&
+	!!config.getProjectKey("devopsTeam") &&
+	!!config.getProjectKey("devopsOrganization");
 
 
 // this method is called when your extension is deactivated

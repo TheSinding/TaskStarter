@@ -27,8 +27,8 @@ export const setDevopsTeam = () => {
 			if (!team || !pickedTeam) { throw new TeamNotProvidedError(); }
 
 
-			await config.update("devopsProject", team?.projectName);
-			await config.update("devopsTeam", team?.name);
+			await config.updateProjectKey("devopsProject", team?.projectName);
+			await config.updateProjectKey("devopsTeam", team?.name);
 		} catch (error: any) {
 			logger.error(error);
 			window.showErrorMessage(error.message);

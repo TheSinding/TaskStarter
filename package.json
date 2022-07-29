@@ -3,7 +3,7 @@
   "displayName": "TaskStarter",
   "description": "Devops task starter, because starting a task is super annoying",
   "publisher": "thesinding",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "repository": {
     "url": "https://github.com/TheSinding/taskstarter"
   },
@@ -23,35 +23,47 @@
     "configuration": {
       "title": "Task Starter",
       "properties": {
-        "taskstarter.customRegex": {
-          "type": "string",
-          "default": ""
-        },
-        "taskstarter.devopsPATToken": {
-          "type": "string",
-          "default": "",
-          "description": "The Azure DevOps token to communicate with DevOps. It's recommended to be as strict as possible.",
-          "scope": "resource"
-        },
-        "taskstarter.devopsInstanceURL": {
-          "type": "string",
-          "default": "https://dev.azure.com",
-          "description": "The Azure DevOps url."
-        },
-        "taskstarter.devopsProject": {
-          "type": "string",
-          "default": "",
-          "description": "The Azure DevOps project name."
-        },
-        "taskstarter.devopsOrganization": {
-          "type": "string",
-          "default": "",
-          "description": "The Azure DevOps organization name."
-        },
-        "taskstarter.devopsTeam": {
-          "type": "string",
-          "default": "",
-          "description": "the azure devops team name."
+        "taskstarter.projectConfigs": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "additionalProperties": false,
+            "type": "object",
+            "properties": {
+              "projectName": {
+                "type": "string"
+              },
+              "customBranchRegex": {
+                "type": "string",
+                "default": ""
+              },
+              "devopsPATToken": {
+                "type": "string",
+                "default": "",
+                "description": "The Azure DevOps token to communicate with DevOps. It's recommended to be as strict as possible.",
+                "scope": "resource"
+              },
+              "devopsInstanceURL": {
+                "type": "string",
+                "description": "The Azure DevOps url."
+              },
+              "devopsProject": {
+                "type": "string",
+                "default": "",
+                "description": "The Azure DevOps project name."
+              },
+              "devopsOrganization": {
+                "type": "string",
+                "default": "",
+                "description": "The Azure DevOps organization name."
+              },
+              "devopsTeam": {
+                "type": "string",
+                "default": "",
+                "description": "the azure devops team name."
+              }
+            }
+          }
         },
         "taskstarter.hideInitPrompt": {
           "type": "boolean",

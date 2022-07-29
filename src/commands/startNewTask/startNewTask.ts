@@ -62,8 +62,9 @@ export const startNewTask = () => {
 
 			if (task) {
 				let label = task.label;
-				if (config.get("customRegex")) {
-					const regex = new RegExp(config.get<string>("customRegex"), "g");
+				const customBranchRegex = config.getProjectKey("customBranchRegex");
+				if (customBranchRegex) {
+					const regex = new RegExp(customBranchRegex, "g");
 					label = label.replaceAll(regex, "");
 				}
 				label = sanitize(label);
