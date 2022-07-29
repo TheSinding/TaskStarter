@@ -1,0 +1,18 @@
+on:
+  push:
+    branches:
+      - main
+
+name: Deploy Extension
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 16
+      - run: npm ci & npm i --location=global vsce
+      - name: Publish to Visual Studio Marketplace
+      - run: npm run package
+      - run: vsce publish -p ${{ secrets.VS_MARKETPLACE_TOKEN}}
