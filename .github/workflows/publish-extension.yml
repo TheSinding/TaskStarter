@@ -14,5 +14,4 @@ jobs:
           node-version: 16
       - run: npm ci & npm i --location=global vsce
       - name: Publish to Visual Studio Marketplace
-      - run: npm run package
-      - run: vsce publish -p ${{ secrets.VS_MARKETPLACE_TOKEN}}
+      - run: vsce publish -p ${{ secrets.VS_MARKETPLACE_TOKEN }}
