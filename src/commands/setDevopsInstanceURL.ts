@@ -5,7 +5,7 @@ export const COMMAND = "taskstarter.setDevOpsInstanceURL";
 export const setDevOpsInstanceURL = () => {
 	const commandHandler = async () => {
 		const instanceURL = await window.showQuickPick(["https://dev.azure.com"]);
-		config.update("devopsInstanceURL", instanceURL);
+		config.updateProjectKey("devopsInstanceURL", instanceURL);
 	};
 	return commands.registerCommand(COMMAND, commandHandler);
 };

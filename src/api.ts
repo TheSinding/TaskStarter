@@ -2,18 +2,17 @@
 import { getPersonalAccessTokenHandler, WebApi } from 'azure-devops-node-api';
 import { TeamContext, TeamProjectReference, WebApiTeam } from 'azure-devops-node-api/interfaces/CoreInterfaces';
 import * as config from './configuration';
-import { IterationWorkItems } from 'azure-devops-node-api/interfaces/WorkInterfaces';
 import { WorkItem } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces';
 import { logger } from './logger';
 import { NoWorkItemsError } from './commands/startNewTask/NoWorkItemsError';
 
-const getTeamContext = (): TeamContext => ({ team: config.get<string>("devopsTeam"), project: config.get<string>("devopsProject") });
+const getTeamContext = (): TeamContext => ({ team: config.getProjectKey("devopsTeam"), project: config.getProjectKey("devopsProject") });
 
 const getApi = (): WebApi => {
-	if (!config.get("devopsPATToken")) { throw new Error("DevOps PAT Token not set"); };
-	const token = config.get<string>("devopsPATToken");
-	const instance = config.get<string>("devopsInstanceURL");
-	const organization = config.get<string>("devopsOrganization");
+	if (!config.getProjectKey("devopsPATToken")) { throw new Error("DevOps PAT Token not set"); };
+	const token = config.getProjectKey("devopsPATToken") as string;
+	const instance = config.getProjectKey("devopsInstanceURL", "https://dev.azure.com") as string;
+	const organization = config.getProjectKey("devopsOrganization");
 	const authHandler = getPersonalAccessTokenHandler(token);
 	logger.debug({ token, instance, organization });
 	return new WebApi(`${instance}/${organization}`, authHandler);

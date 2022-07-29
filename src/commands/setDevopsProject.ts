@@ -10,7 +10,7 @@ export const setDevopsProject = () => {
 		const projects = await listProjects();
 		logger.debug("Requesting project");
 		const projectName = await window.showQuickPick(projects.map(p => p.name as string));
-		await config.update("devopsProject", projectName, false);
+		await config.updateProjectKey("devopsProject", projectName);
 	};
 	return commands.registerCommand(COMMAND, commandHandler);
 };
