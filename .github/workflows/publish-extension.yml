@@ -12,5 +12,10 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: 16
-      - name: Publish to Visual Studio Marketplace
-        run: npm ci && npm i --location=global vsce && vsce publish -p ${{ secrets.VS_MARKETPLACE_TOKEN }}
+      - name: Install dependencies
+        run: npm ci
+      - name: Publish VS Code Extension
+        uses: HaaLeo/publish-vscode-extension@v1
+        with:
+          pat: ${{ secrets.VS_MARKETPLACE_TOKEN }}
+          registryUrl: https://marketplace.visualstudio.com
