@@ -15,9 +15,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Run package
-        run: npm run package
+        run: npx vsce package --no-git-tag-version --no-update-package-json -o "./extension.vsix"
       - name: Publish VS Code Extension
-        uses: HaaLeo/publish-vscode-extension@v1
-        with:
-          pat: ${{ secrets.VS_MARKETPLACE_TOKEN }}
-          registryUrl: https://marketplace.visualstudio.com
+        run: npx vsce publish --packagePath"./extension.vsix" --no-git-tag-version --no-update-package-json -p ${{ secrets.VS_MARKETPLACE_TOKEN}}
