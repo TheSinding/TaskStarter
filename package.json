@@ -3,7 +3,7 @@
   "displayName": "TaskStarter",
   "description": "Devops task starter, because starting a task is super annoying",
   "publisher": "thesinding",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "repository": {
     "url": "https://github.com/TheSinding/taskstarter"
   },
@@ -35,7 +35,8 @@
               },
               "customBranchRegex": {
                 "type": "string",
-                "default": ""
+                "default": "",
+                "description": "User settable regex used to sanitize the task name for naming the branch"
               },
               "devopsPATToken": {
                 "type": "string",
@@ -60,7 +61,7 @@
               "devopsTeam": {
                 "type": "string",
                 "default": "",
-                "description": "the azure devops team name."
+                "description": "The azure devops team name."
               },
               "autoAssignTask": {
                 "type": "boolean",

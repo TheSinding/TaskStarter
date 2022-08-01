@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 - Reference to current task
+
+## [0.0.5] - 2022-08-01
+
+- Updates readme
+
 ## [0.0.4] - 2022-08-01
 
 ### Added
