@@ -21,7 +21,9 @@ interface ProjectConfig {
     devopsProject?: string,
     customBranchRegex?: string,
     devopsInstanceURL?: string,
-    will: boolean
+    autoMoveTaskToInProgress?: boolean
+    autoAssignTask?: boolean
+    inProgressColumnName?: string
 }
 
 
@@ -69,4 +71,3 @@ export const getProjectKey = <K extends keyof ProjectConfig>(section: K, default
     }
     return projectConfig[section];
 };
-
