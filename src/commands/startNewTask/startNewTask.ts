@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { UserIdentityRef } from "azure-devops-node-api/interfaces/GalleryInterfaces";
 import { WorkItem } from "azure-devops-node-api/interfaces/WorkItemTrackingInterfaces";
-import { commands, Extension, extensions, QuickPickItem, Uri, window } from "vscode";
+import { commands, Extension, extensions, QuickPickItem, window } from "vscode";
 import { GitExtension, API as BuiltInGitApi } from "../../@types/git";
-import { listTasks } from "../../api";
+import { assignTask, getTask, getTaskColumns, listTasks, moveTaskToColumn } from "./api";
+import { getProfile } from '../../api';
 import { logger } from "../../logger";
 import { sanitize } from "../../utils/sanitizeBranch";
 import * as config from '../../configuration';
@@ -74,7 +75,19 @@ export const startNewTask = () => {
 				if (!confirmedBranchName) { throw new Error("Canceled changing task"); };
 				logger.debug(`Starting task: "${label}"`);
 
+				// TODO: Don't get it from the api twice
+				const fullTask = await getTask(Number(task.description));
+
 				await mainRepo.createBranch(confirmedBranchName, true);
+
+				if (config.getProjectKey("autoAssignTask", true)) {
+					const me = await getProfile();
+					await assignTask(Number(task.description), me);
+				}
+
+				if (config.getProjectKey("autoMoveTaskToInProgress", true)) {
+					moveTask(Number(task.description));
+				}
 				window.showInformationMessage(`Started task - ${task.label}`);
 			}
 
@@ -84,6 +97,27 @@ export const startNewTask = () => {
 		}
 	};
 	return commands.registerCommand(COMMAND, commandHandler);
+};
+
+const moveTask = async (taskId: number) => {
+	try {
+		let inProgressColumnName = config.getProjectKey("inProgressColumnName");
+		if (!inProgressColumnName) {
+			const { columns } = await getTaskColumns();
+			if (!columns) { throw new Error("No Columns"); }
+			const columnsPicks = columns.map(c => ({ label: c.name as string }));
+			const newName = await window.showQuickPick(columnsPicks, { title: "Set in-progress column, to automatically move it" });
+			if (newName) {
+				inProgressColumnName = newName.label;
+				await config.updateProjectKey("inProgressColumnName", newName.label);
+			}
+		}
+		if (inProgressColumnName) {
+			await moveTaskToColumn(taskId, inProgressColumnName);
+		}
+	} catch (error) {
+		window.showWarningMessage("Didn't move task");
+	}
 };
 
 

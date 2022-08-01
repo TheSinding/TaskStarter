@@ -2,8 +2,12 @@
 
 ## [Unreleased]
 
-- Moving tasks to in progress
-- Assigning tasks to user
+- Reference to current task
+## [0.0.4] - 2022-08-01
+
+### Added
+
+- Moves and assigns a task to the user by default now
 
 ## [0.0.3] - 2022-07-29
 

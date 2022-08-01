@@ -3,7 +3,7 @@
   "displayName": "TaskStarter",
   "description": "Devops task starter, because starting a task is super annoying",
   "publisher": "thesinding",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "repository": {
     "url": "https://github.com/TheSinding/taskstarter"
   },
@@ -61,6 +61,21 @@
                 "type": "string",
                 "default": "",
                 "description": "the azure devops team name."
+              },
+              "autoAssignTask": {
+                "type": "boolean",
+                "default": true,
+                "description": "Automatically assign task to the owner of the PAT"
+              },
+              "autoMoveTaskToInProgress": {
+                "type": "boolean",
+                "default": true,
+                "description": "Automatically move task to the 'in-progress' column of the board"
+              },
+              "inProgressColumnName": {
+                "type": "string",
+                "default": "",
+                "description": "The column name of the 'in-progress' column."
               }
             }
           }
@@ -143,13 +158,15 @@
     "eslint": "^8.14.0",
     "glob": "^8.0.1",
     "mocha": "^9.2.2",
-    "typescript": "^4.6.4",
+    "typescript": "^4.7.4",
     "vsce": "^2.8.0"
   },
   "dependencies": {
     "@types/axios": "^0.14.0",
     "axios": "^0.27.2",
     "azure-devops-node-api": "^11.1.1",
+    "fast-memoize": "^2.5.2",
+    "moize": "^6.1.1",
     "pino": "^8.1.0"
   }
 }
