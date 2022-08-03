@@ -3,7 +3,7 @@
   "displayName": "TaskStarter",
   "description": "Devops task starter, because starting a task is super annoying",
   "publisher": "thesinding",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "repository": {
     "url": "https://github.com/TheSinding/taskstarter"
   },
@@ -149,6 +149,7 @@
   },
   "devDependencies": {
     "@types/glob": "^7.2.0",
+    "@types/lodash": "^4.14.182",
     "@types/mocha": "^9.1.1",
     "@types/node": "14.x",
     "@types/vscode": "^1.67.0",
@@ -167,6 +168,7 @@
     "axios": "^0.27.2",
     "azure-devops-node-api": "^11.1.1",
     "fast-memoize": "^2.5.2",
+    "lodash": "^4.17.21",
     "moize": "^6.1.1",
     "pino": "^8.1.0"
   }

@@ -2,26 +2,30 @@ import { Profile } from "azure-devops-node-api/interfaces/ProfileInterfaces";
 import { WorkItem } from "azure-devops-node-api/interfaces/WorkItemTrackingInterfaces";
 import { getApi, getTeamContext } from "../../api";
 import { NotFoundError } from "../../Errors/NotFoundError";
+import { chunk } from 'lodash';
 import { logger } from "../../logger";
 import { NoWorkItemsError } from "./NoWorkItemsError";
 
+const WORK_ITEM_LIMIT = 200;
+
+
 export const listTasks = async (): Promise<WorkItem[]> => {
 	logger.debug("Fetching tasks");
-	const workApi = await getApi().getWorkApi();
 	const witApi = await getApi().getWorkItemTrackingApi();
+	const items: WorkItem[] = [];
 
-	const currentIteration = await workApi.getTeamIterations(getTeamContext(), "current");
+	const query = `SELECT * FROM WorkItems WHERE [System.IterationPath] = @CurrentIteration`;
+	const { workItems } = await witApi.queryByWiql({ query }, getTeamContext());
+	const chunks = chunk(workItems, WORK_ITEM_LIMIT);
 
-	if (!currentIteration.length || !currentIteration[0].id) { throw new Error("Found no current iteration"); }
+	const result = await Promise.all(chunks.map(c => witApi.getWorkItemsBatch({ ids: c?.map(i => i.id!) })));
+	result.forEach(v => items.push(...v));
 
-	const iterationItems = await workApi.getIterationWorkItems(getTeamContext(), currentIteration[0].id);
-	if (!iterationItems.workItemRelations) { throw new NoWorkItemsError(); }
+	if (!items) { throw new NoWorkItemsError(); }
 
-	const items = iterationItems.workItemRelations.filter(rel => rel.target?.id);
+	logger.debug(`Found ${workItems?.length} items`);
 
-	logger.debug(`Found ${items.length} items`);
-
-	return witApi.getWorkItems(items.map(rel => rel.target!.id as number));
+	return items;
 };
 
 export const getTask = async (id: number): Promise<WorkItem> => {
