@@ -1,4 +1,8 @@
 import pino from 'pino';
-const logger = pino({ level: "debug" });
+import { window } from 'vscode';
+const channelName = "taskstarter";
+const outputChannel = window.createOutputChannel(channelName);
+const logger = pino({ level: "debug", });
+
 
 export { logger };
