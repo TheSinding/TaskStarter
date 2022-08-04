@@ -57,7 +57,7 @@ export const updateProjectKey = <K extends keyof ProjectConfig>(key: K, value: P
     const projectName = getProjectName();
     if (!projectName) { throw new Error("No project found"); }
     const configs = get<ProjectConfig[]>("projectConfigs");
-    const current = configs.find(p => p.projectName) || { projectName };
+    const current = configs.find(p => p.projectName === projectName) || { projectName };
     return update("projectConfigs", [...configs.filter(p => p.projectName !== projectName), { ...current, [key]: value }], true);
 };
 
