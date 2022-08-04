@@ -3,6 +3,19 @@
 ## [Unreleased]
 
 - Reference to current task
+- Start task from PBI
+
+## [0.0.7]
+
+### Fixes
+
+- Fixes multiple configuration
+
+## [0.0.6] - 2022-08-03
+
+### Fixes
+
+- Fixes issue with getting more than 200 items from devops api
 
 ## [0.0.5] - 2022-08-01
 
