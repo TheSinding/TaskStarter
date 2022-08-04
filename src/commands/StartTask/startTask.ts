@@ -39,8 +39,8 @@ enum TaskFields {
 	REMAINING_WORK = "Microsoft.VSTS.Scheduling.RemainingWork"
 }
 
-export const COMMAND = "taskstarter.startNewTask";
-export const startNewTask = () => {
+export const COMMAND = "taskstarter.startTask";
+export const startTask = () => {
 	const getTaskOptions = (): Promise<QuickPickItem[]> => {
 		return new Promise(async (resolve) => {
 			const tasks = await listTasks();
