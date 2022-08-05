@@ -3,7 +3,7 @@
   "displayName": "TaskStarter",
   "description": "Devops task starter, because starting a task is super annoying",
   "publisher": "thesinding",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "repository": {
     "url": "https://github.com/TheSinding/taskstarter"
   },
@@ -120,8 +120,8 @@
         "category": "Task starter"
       },
       {
-        "command": "taskstarter.startNewTask",
-        "title": "Start new task",
+        "command": "taskstarter.startTask",
+        "title": "Start task",
         "category": "Task starter",
         "enablement": "taskstarter.isInitialized"
       }
