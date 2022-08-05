@@ -9,6 +9,7 @@ import { setDevopsProject } from './commands/setDevopsProject';
 import { setDevopsTeam } from './commands/SetTeam/setDevopsTeam';
 import { startTask } from './commands/StartTask/startTask';
 import { runInit, COMMAND as RUN_INIT_COMMAND } from './commands/runInit';
+import { startTaskFromParent } from './commands/StartTask/startTaskFromParent';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -23,11 +24,13 @@ export function activate(context: vscode.ExtensionContext) {
 		setDevopsProject(),
 		setDevopsTeam(),
 		runInit(),
-		startTask()
+		startTask(),
+		startTaskFromParent()
 	);
 
 
 	vscode.workspace.onDidChangeConfiguration((event) => {
+		// TODO: add a isReady flag to commands
 		if (!event.affectsConfiguration(config.SECTION)) { return; }
 		setInitialized();
 	});

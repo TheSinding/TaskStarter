@@ -3,9 +3,19 @@
 ## [Unreleased]
 
 - Reference to current task
-- Start task from PBI
 
-## [0.0.7]
+## [0.1.0] - 2022-08-06
+
+### Adds
+
+- Adds ability start a task from a parent task.
+There is a new command called "Start task from parent" which lists parents then you can pick a parent and then it will show you it's children.
+
+- Adds automatically detecting of the branch type, so basically if it's a `bugfix` branch or `feature` branch
+
+It's 1 am right now and I have no idea if it actually works as intended, but I don't want to sit here anymore. Im going to bed!
+
+## [0.0.7] - 2022-08-06
 
 ### Adds
 
