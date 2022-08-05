@@ -7,7 +7,7 @@ import { setDevOpsOrganization } from './commands/SetOrganizationCommand/setDevO
 import { setDevOpsInstanceURL } from './commands/setDevopsInstanceURL';
 import { setDevopsProject } from './commands/setDevopsProject';
 import { setDevopsTeam } from './commands/SetTeam/setDevopsTeam';
-import { startTask } from './commands/startTask/StartTask';
+import { startTask } from './commands/StartTask/startTask';
 import { runInit, COMMAND as RUN_INIT_COMMAND } from './commands/runInit';
 
 // this method is called when your extension is activated
