@@ -2,13 +2,20 @@
 import { WorkItem } from "azure-devops-node-api/interfaces/WorkItemTrackingInterfaces";
 import { commands, Extension, extensions, QuickPickItem, window } from "vscode";
 import { GitExtension, API as BuiltInGitApi } from "../../@types/git";
-import { assignTask, getTaskColumns, listTasks, moveTaskToColumn } from "./api";
+import { assignTask, getParentType, getTaskColumns, getTaskType, listTasks, moveTaskToColumn } from "./api";
 import { getProfile } from '../../api';
 import { logger } from "../../logger";
 import { sanitize } from "../../utils/sanitizeBranch";
 import * as config from '../../configuration';
 import { TaskFields, UserInfo } from "./types";
+import { NoWorkItemsError } from "./NoWorkItemsError";
+import { COMMAND as startFromParentCommand } from './startTaskFromParent';
+import { nameBranch, stripIcons } from "./utils";
+import { WorkItemType } from "../../@types/VscodeTypes";
 
+// TODO: Simplify this file, please
+
+export const COMMAND = "taskstarter.startTask";
 
 const getBuiltInGitApi = async (): Promise<BuiltInGitApi | undefined> => {
 	try {
@@ -21,66 +28,88 @@ const getBuiltInGitApi = async (): Promise<BuiltInGitApi | undefined> => {
 	} catch { }
 };
 
-export const COMMAND = "taskstarter.startTask";
-export const startTask = () => {
-	const getTaskOptions = (): Promise<QuickPickItem[]> => {
-		return new Promise(async (resolve) => {
-			const tasks = await listTasks();
-			if (!tasks) { resolve([]); }
-			resolve(tasks.filter(taskFilter).map(taskMapper));
-		});
-	};
+const GO_BACK_ITEM: QuickPickItem = {
+	label: "$(arrow-left) Go back",
+	alwaysShow: true,
+};
 
-	const commandHandler = async () => {
-		try {
-			logger.debug("Getting tasks");
-			const gitApi = await getBuiltInGitApi();
-			if (!gitApi) { throw new Error("Could not find git API"); };
 
-			const mainRepo = gitApi.repositories[0];
 
-			window.showInformationMessage("Getting tasks in current iteration");
+const getTaskOptions = (parentId?: number): Promise<QuickPickItem[]> =>
+	new Promise(async (resolve, reject) => {
+		const _tasks = await listTasks(parentId);
+		const tasks = _tasks.filter(taskFilter).map(taskMapper).reverse();
 
-			const task = await window.showQuickPick<QuickPickItem>(getTaskOptions(), { matchOnDescription: true, matchOnDetail: true });
+		if (!tasks.length) {
+			return reject(new NoWorkItemsError());
+		}
+		resolve(parentId ? [GO_BACK_ITEM, ...tasks] : tasks);
+	});
 
-			if (task) {
-				let label = task.label;
-				const customBranchRegex = config.getProjectKey("customBranchRegex");
-				if (customBranchRegex) {
-					const regex = new RegExp(customBranchRegex, "g");
-					label = label.replaceAll(regex, "");
-				}
-				label = sanitize(label);
+const commandHandler = async (parentId?: number) => {
+	try {
+		const title = "Pick a task";
+		logger.debug("Getting tasks");
+		const gitApi = await getBuiltInGitApi();
+		if (!gitApi) { throw new Error("Could not find git API"); };
 
-				const branchName = `feature/${task.description}-${label}`;
-				const confirmedBranchName = await window.showInputBox({ placeHolder: branchName, title: "New branch name", value: branchName });
-				if (!confirmedBranchName) { throw new Error("Canceled changing task"); };
-				logger.debug(`Starting task: "${label}"`);
+		const mainRepo = gitApi.repositories[0];
 
-				await mainRepo.createBranch(confirmedBranchName, true);
+		window.showInformationMessage("Getting tasks in current iteration");
 
-				if (config.getProjectKey("autoAssignTask", true)) {
-					getProfile().then(me => {
-						return assignTask(Number(task.description), me);
-					}).catch(e => {
-						logger.error(e);
-						window.showErrorMessage("Failed to assign task to you.");
-					});
-				}
+		const taskPick = await window.showQuickPick<QuickPickItem>(getTaskOptions(parentId),
+			{
+				title,
+				placeHolder: "Search by assignee, name or task id",
+				matchOnDescription: true,
+				matchOnDetail: true
+			});
 
-				if (config.getProjectKey("autoMoveTaskToInProgress", true)) {
-					moveTask(Number(task.description));
-				}
-				window.showInformationMessage(`Started task - ${task.label}`);
+		if (taskPick) {
+			if (stripIcons(taskPick.label).toLowerCase().includes("go back") && taskPick.alwaysShow) {
+				return commands.executeCommand(startFromParentCommand);
+			}
+			let parentType: WorkItemType;
+			if (parentId) {
+				parentType = await getTaskType(parentId);
+			} else {
+				parentType = await getParentType(Number(taskPick.description));
 			}
 
-		} catch (error: any) {
-			logger.error(error);
+			const branchName = nameBranch(taskPick, parentType);
+
+			const confirmedBranchName = await window.showInputBox({ placeHolder: branchName, title: "New branch name", value: branchName });
+			if (!confirmedBranchName) { throw new Error("Canceled changing task"); };
+			logger.debug(`Starting task: "${taskPick.label}"`);
+
+			await mainRepo.createBranch(confirmedBranchName, true);
+
+			if (config.getProjectKey("autoAssignTask", true)) {
+				getProfile().then(me => {
+					return assignTask(Number(taskPick.description), me);
+				}).catch(e => {
+					logger.error(e);
+					window.showErrorMessage("Failed to assign task to you.");
+				});
+			}
+
+			if (config.getProjectKey("autoMoveTaskToInProgress", true)) {
+				moveTask(Number(taskPick.description));
+			}
+			window.showInformationMessage(`Started task - ${taskPick.label}`);
+		}
+
+	} catch (error: any) {
+		logger.error(error);
+		if (error instanceof NoWorkItemsError && parentId) {
+			window.showErrorMessage("No new work items in parent");
+			commands.executeCommand(startFromParentCommand);
+		} else {
 			window.showErrorMessage(error.message);
 		}
-	};
-	return commands.registerCommand(COMMAND, commandHandler);
+	}
 };
+
 
 const moveTask = async (taskId: number) => {
 	try {
@@ -127,3 +156,7 @@ const taskFilter = (task: WorkItem): Boolean => {
 	return !filter.includes(state) && !filter.includes(type);
 };
 
+
+export const startTask = () => {
+	return commands.registerCommand(COMMAND, commandHandler);
+};
