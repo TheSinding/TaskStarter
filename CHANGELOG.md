@@ -7,6 +7,10 @@
 
 ## [0.0.7]
 
+### Adds
+
+- Searching by description and detail - Now you can search by assignee, weight (Don't know why you would do that) & state
+
 ### Fixes
 
 - Fixes multiple configuration
