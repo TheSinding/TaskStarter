@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { UserIdentityRef } from "azure-devops-node-api/interfaces/GalleryInterfaces";
 import { WorkItem } from "azure-devops-node-api/interfaces/WorkItemTrackingInterfaces";
 import { commands, Extension, extensions, QuickPickItem, window } from "vscode";
 import { GitExtension, API as BuiltInGitApi } from "../../@types/git";
-import { assignTask, getTask, getTaskColumns, listTasks, moveTaskToColumn } from "./api";
+import { assignTask, getTaskColumns, listTasks, moveTaskToColumn } from "./api";
 import { getProfile } from '../../api';
 import { logger } from "../../logger";
 import { sanitize } from "../../utils/sanitizeBranch";
 import * as config from '../../configuration';
+import { TaskFields, UserInfo } from "./types";
 
 
 const getBuiltInGitApi = async (): Promise<BuiltInGitApi | undefined> => {
@@ -21,26 +21,8 @@ const getBuiltInGitApi = async (): Promise<BuiltInGitApi | undefined> => {
 	} catch { }
 };
 
-interface UserInfo extends UserIdentityRef {
-	_links?: {
-		avatar?: { href?: string }
-	}
-	uniqueName?: string
-	imageUrl?: string
-	descriptor?: string
-}
-
-enum TaskFields {
-	TITLE = "System.Title",
-	ID = "System.Id",
-	ASSIGNED_TO = "System.AssignedTo",
-	STATE = "System.State",
-	TYPE = "System.WorkItemType",
-	REMAINING_WORK = "Microsoft.VSTS.Scheduling.RemainingWork"
-}
-
-export const COMMAND = "taskstarter.startNewTask";
-export const startNewTask = () => {
+export const COMMAND = "taskstarter.startTask";
+export const startTask = () => {
 	const getTaskOptions = (): Promise<QuickPickItem[]> => {
 		return new Promise(async (resolve) => {
 			const tasks = await listTasks();
@@ -59,7 +41,7 @@ export const startNewTask = () => {
 
 			window.showInformationMessage("Getting tasks in current iteration");
 
-			const task = await window.showQuickPick<QuickPickItem>(getTaskOptions());
+			const task = await window.showQuickPick<QuickPickItem>(getTaskOptions(), { matchOnDescription: true, matchOnDetail: true });
 
 			if (task) {
 				let label = task.label;
@@ -75,14 +57,15 @@ export const startNewTask = () => {
 				if (!confirmedBranchName) { throw new Error("Canceled changing task"); };
 				logger.debug(`Starting task: "${label}"`);
 
-				// TODO: Don't get it from the api twice
-				const fullTask = await getTask(Number(task.description));
-
 				await mainRepo.createBranch(confirmedBranchName, true);
 
 				if (config.getProjectKey("autoAssignTask", true)) {
-					const me = await getProfile();
-					await assignTask(Number(task.description), me);
+					getProfile().then(me => {
+						return assignTask(Number(task.description), me);
+					}).catch(e => {
+						logger.error(e);
+						window.showErrorMessage("Failed to assign task to you.");
+					});
 				}
 
 				if (config.getProjectKey("autoMoveTaskToInProgress", true)) {

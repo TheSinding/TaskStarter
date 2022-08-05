@@ -1,13 +1,13 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { setDevOpsPATToken, COMMAND } from './commands/SetTokenCommand/setDevOpsPATToken';
+import { setDevOpsPATToken } from './commands/SetTokenCommand/setDevOpsPATToken';
 import * as config from './configuration';
 import { setDevOpsOrganization } from './commands/SetOrganizationCommand/setDevOpsOrganization';
 import { setDevOpsInstanceURL } from './commands/setDevopsInstanceURL';
 import { setDevopsProject } from './commands/setDevopsProject';
 import { setDevopsTeam } from './commands/SetTeam/setDevopsTeam';
-import { startNewTask } from './commands/startNewTask/startNewTask';
+import { startTask } from './commands/startTask/StartTask';
 import { runInit, COMMAND as RUN_INIT_COMMAND } from './commands/runInit';
 
 // this method is called when your extension is activated
@@ -23,7 +23,7 @@ export function activate(context: vscode.ExtensionContext) {
 		setDevopsProject(),
 		setDevopsTeam(),
 		runInit(),
-		startNewTask()
+		startTask()
 	);
 
 

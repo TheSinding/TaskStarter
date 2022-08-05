@@ -14,7 +14,9 @@ export const listTasks = async (): Promise<WorkItem[]> => {
 	const witApi = await getApi().getWorkItemTrackingApi();
 	const items: WorkItem[] = [];
 
-	const query = `SELECT * FROM WorkItems WHERE [System.IterationPath] = @CurrentIteration`;
+	const query = `SELECT * FROM WorkItems 
+	WHERE [System.IterationPath] = @CurrentIteration
+	AND [System.WorkItemType] = 'Task'` ;
 	const { workItems } = await witApi.queryByWiql({ query }, getTeamContext());
 	const chunks = chunk(workItems, WORK_ITEM_LIMIT);
 
