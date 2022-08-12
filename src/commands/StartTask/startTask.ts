@@ -1,15 +1,18 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { commands, QuickPickItem, window } from 'vscode'
+import { commands, QuickPickItem, ThemeIcon, window } from 'vscode'
 import { assignTask, getParentType, getTaskColumns, listTasks, moveTaskToColumn } from './api'
 import { getProfile } from '../../api'
 import { logger } from '../../logger'
 import * as config from '../../configuration'
-import { UserInfo, WorkItem } from './types'
+import { TaskPick, UserInfo, WorkItem } from './types'
 import { NoWorkItemsError } from './NoWorkItemsError'
 import { COMMAND as startFromParentCommand } from './startTaskFromParent'
 import { nameBranch, stripIcons } from './utils'
+import { COMMAND as openOnDevOpsCommand } from '../openOnDevOps'
 import { WorkItemType } from '../../@types/VscodeTypes'
 import { getBuiltInGitApi } from '../../git'
+import { createQuickPickHelper } from '../../utils/createQuickPickHelper'
+import { Repository } from '../../@types/git'
 
 // TODO: Simplify this file, please
 
@@ -20,7 +23,7 @@ const GO_BACK_ITEM: QuickPickItem = {
   alwaysShow: true,
 }
 
-const getTaskOptions = (parentId?: number): Promise<QuickPickItem[]> =>
+const getTaskOptions = (parentId?: number): Promise<TaskPick[]> =>
   new Promise(async (resolve, reject) => {
     const _tasks = await listTasks(parentId)
     const tasks = _tasks.filter(taskFilter).map(taskMapper).reverse()
@@ -33,66 +36,45 @@ const getTaskOptions = (parentId?: number): Promise<QuickPickItem[]> =>
 
 const commandHandler = async (parentId?: number, parentType?: WorkItemType) => {
   try {
-    const title = 'Pick a task'
-    logger.debug('Getting tasks')
     const gitApi = await getBuiltInGitApi()
     if (!gitApi) {
       throw new Error('Could not find git API')
     }
 
-    const mainRepo = gitApi.repositories[0]
+    const repository = gitApi.repositories[0]
+    const title = 'Pick a task'
+    const placeholder = 'Search by assignee, name or task ID'
+    logger.debug('Getting tasks')
 
     window.showInformationMessage('Getting tasks in current iteration')
 
-    const taskPick = await window.showQuickPick<QuickPickItem>(getTaskOptions(parentId), {
+    const picker = createQuickPickHelper<TaskPick>({
       title,
-      placeHolder: 'Search by assignee, name or task id',
+      placeholder,
+      busy: true,
       matchOnDescription: true,
       matchOnDetail: true,
       ignoreFocusOut: true,
     })
 
-    if (taskPick) {
-      if (stripIcons(taskPick.label).toLowerCase().includes('go back') && taskPick.alwaysShow) {
-        return commands.executeCommand(startFromParentCommand)
+    picker.show()
+
+    picker.items = await getTaskOptions(parentId)
+    picker.busy = false
+
+    picker.onDidAccept(() => {
+      if (!picker.selectedItems.length || !picker.enabled) {
+        return
       }
 
-      let _parentType: WorkItemType | undefined = parentType
+      picker.enabled = false
+      picker.busy = true
+      picker.keepScrollPosition = true
 
-      if (!_parentType) {
-        _parentType = await getParentType(Number(taskPick.description))
-      }
+      changeTask(picker.selectedItems[0], repository, parentType)
+    })
 
-      const branchName = nameBranch(taskPick, _parentType)
-
-      const confirmedBranchName = await window.showInputBox({
-        placeHolder: branchName,
-        title: 'New branch name',
-        value: branchName,
-      })
-      if (!confirmedBranchName) {
-        throw new Error('Canceled changing task')
-      }
-      logger.debug(`Starting task: "${taskPick.label}"`)
-
-      await mainRepo.createBranch(confirmedBranchName, true)
-
-      if (config.getProjectKey('autoAssignTask', true)) {
-        getProfile()
-          .then((me) => {
-            return assignTask(Number(taskPick.description), me)
-          })
-          .catch((e) => {
-            logger.error(e)
-            window.showErrorMessage('Failed to assign task to you.')
-          })
-      }
-
-      if (config.getProjectKey('autoMoveTaskToInProgress', true)) {
-        moveTask(Number(taskPick.description))
-      }
-      window.showInformationMessage(`Started task - ${taskPick.label}`)
-    }
+    picker.onDidTriggerItemButton(({ item }) => commands.executeCommand(openOnDevOpsCommand, item.description))
   } catch (error: any) {
     logger.error(error)
     if (error instanceof NoWorkItemsError && parentId) {
@@ -101,6 +83,47 @@ const commandHandler = async (parentId?: number, parentType?: WorkItemType) => {
     } else {
       window.showErrorMessage(error.message)
     }
+  }
+}
+
+const changeTask = async (taskPick: TaskPick, repository: Repository, parentType?: WorkItemType) => {
+  if (stripIcons(taskPick.label).toLowerCase().includes('go back') && taskPick.alwaysShow) {
+    return commands.executeCommand(startFromParentCommand)
+  }
+
+  let _parentType: WorkItemType | undefined = parentType
+
+  if (!_parentType) {
+    _parentType = await getParentType(Number(taskPick.description))
+  }
+
+  const branchName = nameBranch(taskPick, _parentType)
+
+  const confirmedBranchName = await window.showInputBox({
+    placeHolder: branchName,
+    title: 'New branch name',
+    value: branchName,
+  })
+  if (!confirmedBranchName) {
+    throw new Error('Canceled changing task')
+  }
+  logger.debug(`Starting task: "${taskPick.label}"`)
+
+  await repository.createBranch(confirmedBranchName, true)
+
+  if (config.getProjectKey('autoAssignTask', true)) {
+    getProfile()
+      .then((me) => {
+        return assignTask(Number(taskPick.description), me)
+      })
+      .catch((e) => {
+        logger.error(e)
+        window.showErrorMessage('Failed to assign task to you.')
+      })
+  }
+
+  if (config.getProjectKey('autoMoveTaskToInProgress', true)) {
+    moveTask(Number(taskPick.description))
   }
 }
 
@@ -129,7 +152,7 @@ const moveTask = async (taskId: number) => {
   }
 }
 
-const taskMapper = (task: WorkItem): QuickPickItem => {
+const taskMapper = (task: WorkItem): TaskPick => {
   const assignedTo: UserInfo = task?.fields?.['System.AssignedTo']
   const remainingWork = task?.fields?.['Microsoft.VSTS.Scheduling.RemainingWork']
   const taskState = task?.fields?.['System.State']
@@ -137,11 +160,13 @@ const taskMapper = (task: WorkItem): QuickPickItem => {
   const assignedToText = `Assigned to: ${assignedTo && assignedTo.displayName ? assignedTo.displayName : 'None'}`
   const taskWeightText = `Task weight: ${remainingWork ? remainingWork : 'None'}`
   const taskStateText = `State: ${taskState ? taskState : 'Unknown'}`
+  const buttons = [{ iconPath: new ThemeIcon('open-editors-view-icon'), tooltip: 'View on DevOps' }]
 
   return {
     label: `$(symbol-task) ${task.fields!['System.Title']}`,
     description: `${task.id}`,
     detail: [assignedToText, taskWeightText, taskStateText].join(' | '),
+    buttons,
   }
 }
 
