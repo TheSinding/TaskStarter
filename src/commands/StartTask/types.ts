@@ -1,19 +1,7 @@
 import { UserIdentityRef } from "azure-devops-node-api/interfaces/GalleryInterfaces";
-
 import { WorkItem as _WorkItem } from "azure-devops-node-api/interfaces/WorkItemTrackingInterfaces";
-
-/* eslint-disable @typescript-eslint/naming-convention */
-// TODO remove this enum?
-export enum TaskFields {
-	TITLE = "System.Title",
-	ID = "System.Id",
-	ASSIGNED_TO = "System.AssignedTo",
-	STATE = "System.State",
-	TYPE = "System.WorkItemType",
-	REMAINING_WORK = "Microsoft.VSTS.Scheduling.RemainingWork",
-	PARENT = "System.Parent"
-}
-
+import { QuickPickItem, Uri } from "vscode";
+import { WorkItemType } from "../../@types/VscodeTypes";
 export interface UserInfo extends UserIdentityRef {
 	_links?: {
 		avatar?: { href?: string }
@@ -35,3 +23,5 @@ export const fields = ["System.Title",
 type WorkItemField = typeof fields[number];
 
 export type WorkItem = _WorkItem & { fields?: Record<WorkItemField, any> };
+
+export type TaskPick = QuickPickItem & { taskUri?: Uri, taskType?: WorkItemType };
