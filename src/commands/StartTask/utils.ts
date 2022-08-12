@@ -5,14 +5,19 @@ import { sanitize } from '../../utils/sanitizeBranch';
 import { QuickPickItem } from 'vscode';
 
 type BranchType = "feature" | "bugfix" | "hotfix";
+type BowtieIconName = "symbol-list" | "symbol-bug" | "symbol-task";
+
+type IconName = BowtieIconName | ThemeIconName;
 
 export const getWorkItemIcon = (type: WorkItemType) => {
-	const icons: Partial<Record<WorkItemType, ThemeIconName>> = {
-		"Bug": "bug",
-		"Product Backlog Item": "tasklist"
+	const icons: Partial<Record<WorkItemType, IconName>> = {
+		"Bug": "symbol-bug",
+		"Product Backlog Item": "symbol-list",
+		"Task": "symbol-task"
 	};
 	return type in icons ? icons[type] : "";
 };
+
 export const stripIcons = (str: string) => str.replaceAll(/\$\(.+?\)/g, "");
 
 export const nameBranch = (task: QuickPickItem, parentType: WorkItemType = "Product Backlog Item") => {
