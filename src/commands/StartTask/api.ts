@@ -4,7 +4,7 @@ import { NotFoundError } from '../../Errors/NotFoundError'
 import { chunk } from 'lodash'
 import { logger } from '../../logger'
 import { NoWorkItemsError } from './NoWorkItemsError'
-import { fields, WorkItem } from './types'
+import { fields, WorkItem, WorkItemField } from './types'
 import { WorkItemType } from '../../@types/VscodeTypes'
 
 const WORK_ITEM_LIMIT = 200
@@ -62,10 +62,10 @@ const queryTasks = async (query: string): Promise<WorkItem[]> => {
   return result
 }
 
-export const getTask = async (id: number): Promise<WorkItem> => {
+export const getTask = async (id: number, fields?: WorkItemField[]): Promise<WorkItem> => {
   const witApi = await getApi().getWorkItemTrackingApi()
 
-  const workItem = (await witApi.getWorkItem(id)) as WorkItem
+  const workItem = (await witApi.getWorkItem(id, fields as string[])) as WorkItem
   if (!workItem) {
     throw new NotFoundError()
   }
