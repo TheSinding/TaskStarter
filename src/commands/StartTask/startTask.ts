@@ -1,162 +1,182 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { WorkItem } from "azure-devops-node-api/interfaces/WorkItemTrackingInterfaces";
-import { commands, Extension, extensions, QuickPickItem, window } from "vscode";
-import { GitExtension, API as BuiltInGitApi } from "../../@types/git";
-import { assignTask, getParentType, getTaskColumns, getTaskType, listTasks, moveTaskToColumn } from "./api";
-import { getProfile } from '../../api';
-import { logger } from "../../logger";
-import { sanitize } from "../../utils/sanitizeBranch";
-import * as config from '../../configuration';
-import { TaskFields, UserInfo } from "./types";
-import { NoWorkItemsError } from "./NoWorkItemsError";
-import { COMMAND as startFromParentCommand } from './startTaskFromParent';
-import { nameBranch, stripIcons } from "./utils";
-import { WorkItemType } from "../../@types/VscodeTypes";
+import { commands, QuickPickItem, ThemeIcon, window } from 'vscode'
+import { assignTask, getParentType, getTaskColumns, listTasks, moveTaskToColumn } from './api'
+import { getProfile } from '../../api'
+import { logger } from '../../logger'
+import * as config from '../../configuration'
+import { TaskPick, UserInfo, WorkItem } from './types'
+import { NoWorkItemsError } from './NoWorkItemsError'
+import { COMMAND as startFromParentCommand } from './startTaskFromParent'
+import { nameBranch, stripIcons } from './utils'
+import { COMMAND as openOnDevOpsCommand } from '../openOnDevOps'
+import { WorkItemType } from '../../@types/VscodeTypes'
+import { getBuiltInGitApi } from '../../git'
+import { createQuickPickHelper } from '../../utils/createQuickPickHelper'
+import { Repository } from '../../@types/git'
 
 // TODO: Simplify this file, please
 
-export const COMMAND = "taskstarter.startTask";
-
-const getBuiltInGitApi = async (): Promise<BuiltInGitApi | undefined> => {
-	try {
-		const extension = extensions.getExtension('vscode.git') as Extension<GitExtension>;
-		if (extension !== undefined) {
-			const gitExtension = extension.isActive ? extension.exports : await extension.activate();
-
-			return gitExtension.getAPI(1);
-		}
-	} catch { }
-};
+export const COMMAND = 'taskstarter.startTask'
 
 const GO_BACK_ITEM: QuickPickItem = {
-	label: "$(arrow-left) Go back",
-	alwaysShow: true,
-};
+  label: '$(arrow-left) Go back',
+  alwaysShow: true,
+}
 
+const getTaskOptions = (parentId?: number): Promise<TaskPick[]> =>
+  new Promise(async (resolve, reject) => {
+    const _tasks = await listTasks(parentId)
+    const tasks = _tasks.filter(taskFilter).map(taskMapper).reverse()
 
+    if (!tasks.length) {
+      return reject(new NoWorkItemsError())
+    }
+    resolve(parentId ? [GO_BACK_ITEM, ...tasks] : tasks)
+  })
 
-const getTaskOptions = (parentId?: number): Promise<QuickPickItem[]> =>
-	new Promise(async (resolve, reject) => {
-		const _tasks = await listTasks(parentId);
-		const tasks = _tasks.filter(taskFilter).map(taskMapper).reverse();
+const commandHandler = async (parentId?: number, parentType?: WorkItemType) => {
+  try {
+    const gitApi = await getBuiltInGitApi()
+    if (!gitApi) {
+      throw new Error('Could not find git API')
+    }
 
-		if (!tasks.length) {
-			return reject(new NoWorkItemsError());
-		}
-		resolve(parentId ? [GO_BACK_ITEM, ...tasks] : tasks);
-	});
+    const repository = gitApi.repositories[0]
+    const title = 'Pick a task'
+    const placeholder = 'Search by assignee, name or task ID'
+    logger.debug('Getting tasks')
 
-const commandHandler = async (parentId?: number) => {
-	try {
-		const title = "Pick a task";
-		logger.debug("Getting tasks");
-		const gitApi = await getBuiltInGitApi();
-		if (!gitApi) { throw new Error("Could not find git API"); };
+    window.showInformationMessage('Getting tasks in current iteration')
 
-		const mainRepo = gitApi.repositories[0];
+    const picker = createQuickPickHelper<TaskPick>({
+      title,
+      placeholder,
+      busy: true,
+      matchOnDescription: true,
+      matchOnDetail: true,
+      ignoreFocusOut: true,
+    })
 
-		window.showInformationMessage("Getting tasks in current iteration");
+    picker.show()
 
-		const taskPick = await window.showQuickPick<QuickPickItem>(getTaskOptions(parentId),
-			{
-				title,
-				placeHolder: "Search by assignee, name or task id",
-				matchOnDescription: true,
-				matchOnDetail: true
-			});
+    picker.items = await getTaskOptions(parentId)
+    picker.busy = false
 
-		if (taskPick) {
-			if (stripIcons(taskPick.label).toLowerCase().includes("go back") && taskPick.alwaysShow) {
-				return commands.executeCommand(startFromParentCommand);
-			}
-			let parentType: WorkItemType;
-			if (parentId) {
-				parentType = await getTaskType(parentId);
-			} else {
-				parentType = await getParentType(Number(taskPick.description));
-			}
+    picker.onDidAccept(() => {
+      if (!picker.selectedItems.length || !picker.enabled) {
+        return
+      }
 
-			const branchName = nameBranch(taskPick, parentType);
+      picker.enabled = false
+      picker.busy = true
+      picker.keepScrollPosition = true
 
-			const confirmedBranchName = await window.showInputBox({ placeHolder: branchName, title: "New branch name", value: branchName });
-			if (!confirmedBranchName) { throw new Error("Canceled changing task"); };
-			logger.debug(`Starting task: "${taskPick.label}"`);
+      changeTask(picker.selectedItems[0], repository, parentType)
+    })
 
-			await mainRepo.createBranch(confirmedBranchName, true);
+    picker.onDidTriggerItemButton(({ item }) => commands.executeCommand(openOnDevOpsCommand, item.description))
+  } catch (error: any) {
+    logger.error(error)
+    if (error instanceof NoWorkItemsError && parentId) {
+      window.showErrorMessage('No new work items in parent')
+      commands.executeCommand(startFromParentCommand)
+    } else {
+      window.showErrorMessage(error.message)
+    }
+  }
+}
 
-			if (config.getProjectKey("autoAssignTask", true)) {
-				getProfile().then(me => {
-					return assignTask(Number(taskPick.description), me);
-				}).catch(e => {
-					logger.error(e);
-					window.showErrorMessage("Failed to assign task to you.");
-				});
-			}
+const changeTask = async (taskPick: TaskPick, repository: Repository, parentType?: WorkItemType) => {
+  if (stripIcons(taskPick.label).toLowerCase().includes('go back') && taskPick.alwaysShow) {
+    return commands.executeCommand(startFromParentCommand)
+  }
 
-			if (config.getProjectKey("autoMoveTaskToInProgress", true)) {
-				moveTask(Number(taskPick.description));
-			}
-			window.showInformationMessage(`Started task - ${taskPick.label}`);
-		}
+  let _parentType: WorkItemType | undefined = parentType
 
-	} catch (error: any) {
-		logger.error(error);
-		if (error instanceof NoWorkItemsError && parentId) {
-			window.showErrorMessage("No new work items in parent");
-			commands.executeCommand(startFromParentCommand);
-		} else {
-			window.showErrorMessage(error.message);
-		}
-	}
-};
+  if (!_parentType) {
+    _parentType = await getParentType(Number(taskPick.description))
+  }
 
+  const branchName = nameBranch(taskPick, _parentType)
+
+  const confirmedBranchName = await window.showInputBox({
+    placeHolder: branchName,
+    title: 'New branch name',
+    value: branchName,
+  })
+  if (!confirmedBranchName) {
+    throw new Error('Canceled changing task')
+  }
+  logger.debug(`Starting task: "${taskPick.label}"`)
+
+  await repository.createBranch(confirmedBranchName, true)
+
+  if (config.getProjectKey('autoAssignTask', true)) {
+    getProfile()
+      .then((me) => {
+        return assignTask(Number(taskPick.description), me)
+      })
+      .catch((e) => {
+        logger.error(e)
+        window.showErrorMessage('Failed to assign task to you.')
+      })
+  }
+
+  if (config.getProjectKey('autoMoveTaskToInProgress', true)) {
+    moveTask(Number(taskPick.description))
+  }
+}
 
 const moveTask = async (taskId: number) => {
-	try {
-		let inProgressColumnName = config.getProjectKey("inProgressColumnName");
-		if (!inProgressColumnName) {
-			const { columns } = await getTaskColumns();
-			if (!columns) { throw new Error("No Columns"); }
-			const columnsPicks = columns.map(c => ({ label: c.name as string }));
-			const newName = await window.showQuickPick(columnsPicks, { title: "Set in-progress column, to automatically move it" });
-			if (newName) {
-				inProgressColumnName = newName.label;
-				await config.updateProjectKey("inProgressColumnName", newName.label);
-			}
-		}
-		if (inProgressColumnName) {
-			await moveTaskToColumn(taskId, inProgressColumnName);
-		}
-	} catch (error) {
-		window.showWarningMessage("Didn't move task");
-	}
-};
+  try {
+    let inProgressColumnName = config.getProjectKey('inProgressColumnName')
+    if (!inProgressColumnName) {
+      const { columns } = await getTaskColumns()
+      if (!columns) {
+        throw new Error('No Columns')
+      }
+      const columnsPicks = columns.map((c) => ({ label: c.name as string }))
+      const newName = await window.showQuickPick(columnsPicks, {
+        title: 'Set in-progress column, to automatically move it',
+      })
+      if (newName) {
+        inProgressColumnName = newName.label
+        await config.updateProjectKey('inProgressColumnName', newName.label)
+      }
+    }
+    if (inProgressColumnName) {
+      await moveTaskToColumn(taskId, inProgressColumnName)
+    }
+  } catch (error) {
+    window.showWarningMessage("Didn't move task")
+  }
+}
 
+const taskMapper = (task: WorkItem): TaskPick => {
+  const assignedTo: UserInfo = task?.fields?.['System.AssignedTo']
+  const remainingWork = task?.fields?.['Microsoft.VSTS.Scheduling.RemainingWork']
+  const taskState = task?.fields?.['System.State']
 
-const taskMapper = (task: WorkItem): QuickPickItem => {
-	const assignedTo: UserInfo = task?.fields?.[TaskFields.ASSIGNED_TO];
-	const remainingWork = task?.fields?.[TaskFields.REMAINING_WORK];
-	const taskState = task?.fields?.[TaskFields.STATE];
+  const assignedToText = `Assigned to: ${assignedTo && assignedTo.displayName ? assignedTo.displayName : 'None'}`
+  const taskWeightText = `Task weight: ${remainingWork ? remainingWork : 'None'}`
+  const taskStateText = `State: ${taskState ? taskState : 'Unknown'}`
+  const buttons = [{ iconPath: new ThemeIcon('open-editors-view-icon'), tooltip: 'View on DevOps' }]
 
-	const assignedToText = `Assigned to: ${assignedTo && assignedTo.displayName ? assignedTo.displayName : "None"}`;
-	const taskWeightText = `Task weight: ${remainingWork ? remainingWork : "None"}`;
-	const taskStateText = `State: ${taskState ? taskState : "Unknown"}`;
-
-	return {
-		label: task.fields![TaskFields.TITLE],
-		description: `${task.id}`,
-		detail: [assignedToText, taskWeightText, taskStateText].join(" | ")
-	};
-};
+  return {
+    label: `$(symbol-task) ${task.fields!['System.Title']}`,
+    description: `${task.id}`,
+    detail: [assignedToText, taskWeightText, taskStateText].join(' | '),
+    buttons,
+  }
+}
 
 const taskFilter = (task: WorkItem): Boolean => {
-	const filter = ["Product Backlog Item", "Bug", "Done"];
-	const state = task?.fields?.[TaskFields.STATE];
-	const type = task?.fields?.[TaskFields.TYPE];
-	return !filter.includes(state) && !filter.includes(type);
-};
-
+  const filter = ['Product Backlog Item', 'Bug', 'Done']
+  const state = task?.fields?.['System.State']
+  const type = task?.fields?.['System.WorkItemType']
+  return !filter.includes(state) && !filter.includes(type)
+}
 
 export const startTask = () => {
-	return commands.registerCommand(COMMAND, commandHandler);
-};
+  return commands.registerCommand(COMMAND, commandHandler)
+}

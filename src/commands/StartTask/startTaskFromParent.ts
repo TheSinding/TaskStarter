@@ -1,76 +1,81 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { WorkItem } from "azure-devops-node-api/interfaces/WorkItemTrackingInterfaces";
-import { commands, QuickPickItem, ThemeIcon, window } from "vscode";
-import { logger } from "../../logger";
-import { TaskFields, UserInfo } from "./types";
-import { listParents } from "./api";
-import { WorkItemType, ThemeIconName } from "../../@types/VscodeTypes";
-import { getWorkItemIcon } from "./utils";
-import { COMMAND as startTaskCommand } from './startTask';
-import { NoWorkItemsError } from "./NoWorkItemsError";
+import { commands, ThemeIcon, window } from 'vscode'
+import { logger } from '../../logger'
+import { TaskPick, UserInfo, WorkItem } from './types'
+import { listParents } from './api'
+import { WorkItemType } from '../../@types/VscodeTypes'
+import { getWorkItemIcon } from './utils'
+import { COMMAND as startTaskCommand } from './startTask'
+import { COMMAND as openOnDevOpsCommand } from '../openOnDevOps'
+import { createQuickPickHelper } from '../../utils/createQuickPickHelper'
 
-export const COMMAND = "taskstarter.startTaskFromParent";
-
-
-const getParentOptions = (): Promise<QuickPickItem[]> =>
-	new Promise(async (resolve, reject) => {
-		const parents = await listParents();
-
-		const tasks = parents.filter(itemFilter).map(itemMapper).reverse();
-		if (!tasks.length) {
-			return reject(new NoWorkItemsError());
-		}
-		resolve(tasks);
-	});
+export const COMMAND = 'taskstarter.startTaskFromParent'
 
 const commandHandler = async () => {
-	try {
-		const title = "Start task from parent";
+  try {
+    const next = (selectedItems: readonly TaskPick[]) => {
+      if (!selectedItems.length) {
+        return
+      }
+      const { description: id, taskType } = selectedItems[0]
+      commands.executeCommand(startTaskCommand, id, taskType)
+    }
 
-		logger.debug("Getting PBIs");
-		window.showInformationMessage("Getting PBIs in current iteration");
-		const pick = await window.showQuickPick<QuickPickItem>(getParentOptions(), {
-			title,
-			placeHolder: "Search by assignee, name or task id",
-			matchOnDescription: true,
-			matchOnDetail: true
-		});
-		if (!pick) {
-			return;
-		}
-		const { description: id } = pick;
-		commands.executeCommand(startTaskCommand, id);
-	} catch (error: any) {
-		logger.error(error);
-		window.showErrorMessage(error.message);
-	}
-};
+    const title = 'Start task from parent'
+    const placeholder = 'Search by assignee, name or task ID'
 
-const itemMapper = (workItem: WorkItem): QuickPickItem => {
-	const assignedTo: UserInfo = workItem.fields?.[TaskFields.ASSIGNED_TO];
-	const itemType: WorkItemType = workItem.fields?.[TaskFields.TYPE];
-	const taskState = workItem?.fields?.[TaskFields.STATE];
+    logger.debug('Getting Parents')
+    window.showInformationMessage('Getting parents in current iteration')
 
-	const assignedToText = `Assigned to: ${assignedTo && assignedTo.displayName ? assignedTo.displayName : "None"}`;
-	const taskTypeText = `Type: ${itemType ? itemType : "Unknown"}`;
-	const taskStateText = `State: ${taskState ? taskState : "Unknown"}`;
+    const picker = createQuickPickHelper<TaskPick>({
+      title,
+      placeholder,
+      busy: true,
+      matchOnDescription: true,
+      matchOnDetail: true,
+      ignoreFocusOut: true,
+    })
 
+    picker.show()
 
-	return {
-		label: `$(${getWorkItemIcon(itemType)}) ${workItem.fields![TaskFields.TITLE]}`,
-		description: `${workItem.id}`,
-		detail: [taskTypeText, assignedToText, taskStateText].join(" | "),
-		buttons: [{ iconPath: new ThemeIcon("open-editors-view-icon"), tooltip: "View on DevOps" }]
-	};
-};
+    const parents = await listParents()
+    picker.items = parents.filter(itemFilter).map(itemMapper).reverse()
+    picker.busy = false
+
+    picker.onDidAccept(() => next(picker.selectedItems))
+    picker.onDidTriggerItemButton(({ item }) => commands.executeCommand(openOnDevOpsCommand, item.description))
+  } catch (error: any) {
+    logger.error(error)
+    window.showErrorMessage(error.message)
+  }
+}
+
+const itemMapper = (workItem: WorkItem): TaskPick => {
+  const assignedTo: UserInfo = workItem.fields?.['System.AssignedTo']
+  const itemType: WorkItemType = workItem.fields?.['System.WorkItemType']
+  const taskState = workItem?.fields?.['System.State']
+
+  const assignedToText = `Assigned to: ${assignedTo && assignedTo.displayName ? assignedTo.displayName : 'None'}`
+  const taskTypeText = `Type: ${itemType ? itemType : 'Unknown'}`
+  const taskStateText = `State: ${taskState ? taskState : 'Unknown'}`
+  const buttons = [{ iconPath: new ThemeIcon('open-editors-view-icon'), tooltip: 'View on DevOps' }]
+
+  return {
+    label: `$(${getWorkItemIcon(itemType)}) ${workItem.fields!['System.Title']}`,
+    description: `${workItem.id}`,
+    detail: [taskTypeText, assignedToText, taskStateText].join(' | '),
+    buttons,
+    taskType: itemType,
+  }
+}
 
 const itemFilter = (task: WorkItem): Boolean => {
-	const filter = ["Done"];
-	const state = task?.fields?.[TaskFields.STATE];
-	const type = task?.fields?.[TaskFields.TYPE];
-	return !filter.includes(state) && !filter.includes(type);
-};
+  const filter = ['Done']
+  const state = task?.fields?.['System.State']
+  const type = task?.fields?.['System.WorkItemType']
+  return !filter.includes(state) && !filter.includes(type)
+}
 
 export const startTaskFromParent = () => {
-	return commands.registerCommand(COMMAND, commandHandler);
-};
+  return commands.registerCommand(COMMAND, commandHandler)
+}

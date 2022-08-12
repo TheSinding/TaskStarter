@@ -2,7 +2,18 @@
 
 ## [Unreleased]
 
-- Reference to current task
+## [0.2.0] - 2022-08-12
+
+### Adds
+
+- Adds a reference item in statusbar to the current task
+You can click it to open it on azure devops
+
+- Adds buttons to open task on azure devops in both "Start task from parent"- and "Start task"-lists
+
+### Fixes
+
+- Reduces API calls to have listing work faster
 
 ## [0.1.0] - 2022-08-06
 

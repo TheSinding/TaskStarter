@@ -3,7 +3,7 @@
   "displayName": "TaskStarter",
   "description": "Devops task starter, because starting a task is super annoying",
   "publisher": "thesinding",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "repository": {
     "url": "https://github.com/TheSinding/taskstarter"
   },
@@ -20,6 +20,29 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "icons": {
+      "symbol-bug": {
+        "description": "Azure DevOps Bug icon",
+        "default": {
+          "fontPath": "./statics/fonts/bowtie.woff",
+          "fontCharacter": "\\EABC"
+        }
+      },
+      "symbol-task": {
+        "description": "Azure DevOps task icon",
+        "default": {
+          "fontPath": "./statics/fonts/bowtie.woff",
+          "fontCharacter": "\\EABF"
+        }
+      },
+      "symbol-list": {
+        "description": "Azure DevOps Product Backlog Item icon",
+        "default": {
+          "fontPath": "./statics/fonts/bowtie.woff",
+          "fontCharacter": "\\EAC5"
+        }
+      }
+    },
     "configuration": {
       "title": "Task Starter",
       "properties": {
@@ -164,6 +187,7 @@
     "@vscode/test-electron": "^2.1.3",
     "esbuild": "^0.14.50",
     "eslint": "^8.14.0",
+    "eslint-config-prettier": "^8.5.0",
     "glob": "^8.0.1",
     "mocha": "^9.2.2",
     "typescript": "^4.7.4",
