@@ -75,8 +75,6 @@ const commandHandler = async (parentId?: number, parentType?: WorkItemType) => {
 
     picker.onDidTriggerItemButton(({ item }) => commands.executeCommand(openOnDevOpsCommand, item.description))
   } catch (error: any) {
-    console.log('what')
-
     logger.error(error)
     if (error instanceof NoWorkItemsError && parentId) {
       window.showErrorMessage('No new work items in parent')
