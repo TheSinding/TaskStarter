@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2022-08-12
+
+### Fixes
+
+- Fixes an uncaught error, which resulted in infinite loading when you started from an empty parent
+
 ## [0.2.0] - 2022-08-12
 
 ### Adds
