@@ -23,16 +23,15 @@ const GO_BACK_ITEM: QuickPickItem = {
   alwaysShow: true,
 }
 
-const getTaskOptions = (parentId?: number): Promise<TaskPick[]> =>
-  new Promise(async (resolve, reject) => {
+const getTaskOptions = async (parentId?: number): Promise<TaskPick[]> => {
+  try {
     const _tasks = await listTasks(parentId)
     const tasks = _tasks.filter(taskFilter).map(taskMapper).reverse()
-
-    if (!tasks.length) {
-      return reject(new NoWorkItemsError())
-    }
-    resolve(parentId ? [GO_BACK_ITEM, ...tasks] : tasks)
-  })
+    return parentId ? [GO_BACK_ITEM, ...tasks] : tasks
+  } catch (error) {
+    throw error
+  }
+}
 
 const commandHandler = async (parentId?: number, parentType?: WorkItemType) => {
   try {
@@ -46,7 +45,7 @@ const commandHandler = async (parentId?: number, parentType?: WorkItemType) => {
     const placeholder = 'Search by assignee, name or task ID'
     logger.debug('Getting tasks')
 
-    window.showInformationMessage('Getting tasks in current iteration')
+    window.showInformationMessage(`Getting tasks from ${parentId ? 'parent' : 'current iteration'}`)
 
     const picker = createQuickPickHelper<TaskPick>({
       title,
