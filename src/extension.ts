@@ -11,11 +11,13 @@ import { startTask } from './commands/StartTask/startTask'
 import { runInit, COMMAND as RUN_INIT_COMMAND } from './commands/runInit'
 import { startTaskFromParent } from './commands/StartTask/startTaskFromParent'
 import { init as initTaskReference } from './taskReferenceItem'
+import { openOnDevOps } from './commands/openOnDevOps'
+import { logger } from './logger'
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-  console.log('Congratulations, your extension "taskstarter" is now active!')
+  logger.debug('Congratulations, your extension "taskstarter" is now active!')
   initExt()
 
   context.subscriptions.push(
@@ -27,6 +29,7 @@ export function activate(context: vscode.ExtensionContext) {
     runInit(),
     startTask(),
     startTaskFromParent(),
+    openOnDevOps(),
     initTaskReference()
   )
 
