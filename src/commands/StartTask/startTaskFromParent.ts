@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { commands, ThemeIcon, Uri, window } from 'vscode'
+import { commands, ThemeIcon, window } from 'vscode'
 import { logger } from '../../logger'
 import { TaskPick, UserInfo, WorkItem } from './types'
 import { listParents } from './api'
@@ -24,8 +24,8 @@ const commandHandler = async () => {
     const title = 'Start task from parent'
     const placeholder = 'Search by assignee, name or task ID'
 
-    logger.debug('Getting PBIs')
-    window.showInformationMessage('Getting PBIs in current iteration')
+    logger.debug('Getting Parents')
+    window.showInformationMessage('Getting parents in current iteration')
 
     const picker = createQuickPickHelper<TaskPick>({
       title,
@@ -59,14 +59,12 @@ const itemMapper = (workItem: WorkItem): TaskPick => {
   const taskTypeText = `Type: ${itemType ? itemType : 'Unknown'}`
   const taskStateText = `State: ${taskState ? taskState : 'Unknown'}`
   const buttons = [{ iconPath: new ThemeIcon('open-editors-view-icon'), tooltip: 'View on DevOps' }]
-  let taskUri: Uri | undefined
 
   return {
     label: `$(${getWorkItemIcon(itemType)}) ${workItem.fields!['System.Title']}`,
     description: `${workItem.id}`,
     detail: [taskTypeText, assignedToText, taskStateText].join(' | '),
     buttons,
-    taskUri,
     taskType: itemType,
   }
 }
