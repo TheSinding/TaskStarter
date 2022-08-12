@@ -1,5 +1,5 @@
 export class OrganizationNotProvidedError extends Error {
-	constructor() {
-		super("Organization not provided");
-	}
+  constructor() {
+    super('Organization not provided')
+  }
 }
