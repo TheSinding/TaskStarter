@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.2.2] - 2022-08-13
+
+### Fixes
+
+- Fixes the queries, so it fits to all project setups.
+- Fixes the default suggestion for a branch name, so it would have a "--" in front of it
+
 ## [0.2.1] - 2022-08-12
 
 ### Fixes
