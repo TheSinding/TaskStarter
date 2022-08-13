@@ -7,7 +7,7 @@ export function sanitize(input: string, separator = '-'): string {
     }
   })
 
-  let output = input
+  let output = input.trim()
 
   output = output.replace(/\/\s+/g, '/')
 

@@ -61,7 +61,7 @@ const itemMapper = (workItem: WorkItem): TaskPick => {
   const buttons = [{ iconPath: new ThemeIcon('open-editors-view-icon'), tooltip: 'View on DevOps' }]
 
   return {
-    label: `$(${getWorkItemIcon(itemType)}) ${workItem.fields!['System.Title']}`,
+    label: `${getWorkItemIcon(itemType)} ${workItem.fields!['System.Title']}`,
     description: `${workItem.id}`,
     detail: [taskTypeText, assignedToText, taskStateText].join(' | '),
     buttons,

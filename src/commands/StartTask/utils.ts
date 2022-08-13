@@ -15,7 +15,7 @@ export const getWorkItemIcon = (type: WorkItemType) => {
     'Product Backlog Item': 'symbol-list',
     Task: 'symbol-task',
   }
-  return type in icons ? icons[type] : ''
+  return type in icons ? `$(${icons[type]})` : ''
 }
 
 export const stripIcons = (str: string) => str.replaceAll(/\$\(.+?\)/g, '')
@@ -39,6 +39,7 @@ const branchTypes: Partial<Record<WorkItemType, BranchType>> = {
   Bug: 'bugfix',
   Task: 'feature',
   Feature: 'feature',
+  Issue: 'feature',
 }
 
 const getBranchType = (workItemType: WorkItemType) =>
