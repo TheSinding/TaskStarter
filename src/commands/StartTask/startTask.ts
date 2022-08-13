@@ -7,7 +7,7 @@ import * as config from '../../configuration'
 import { TaskPick, UserInfo, WorkItem } from './types'
 import { NoWorkItemsError } from './NoWorkItemsError'
 import { COMMAND as startFromParentCommand } from './startTaskFromParent'
-import { nameBranch, stripIcons } from './utils'
+import { getWorkItemIcon, nameBranch, stripIcons } from './utils'
 import { COMMAND as openOnDevOpsCommand } from '../openOnDevOps'
 import { WorkItemType } from '../../@types/VscodeTypes'
 import { getBuiltInGitApi } from '../../git'
@@ -162,7 +162,7 @@ const taskMapper = (task: WorkItem): TaskPick => {
   const buttons = [{ iconPath: new ThemeIcon('open-editors-view-icon'), tooltip: 'View on DevOps' }]
 
   return {
-    label: `$(symbol-task) ${task.fields!['System.Title']}`,
+    label: `${getWorkItemIcon(task.fields?.['System.WorkItemType'])} ${task.fields!['System.Title']}`,
     description: `${task.id}`,
     detail: [assignedToText, taskWeightText, taskStateText].join(' | '),
     buttons,
