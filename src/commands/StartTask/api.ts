@@ -6,6 +6,7 @@ import { logger } from '../../logger'
 import { NoWorkItemsError } from './NoWorkItemsError'
 import { fields, WorkItem, WorkItemField } from './types'
 import { WorkItemType } from '../../@types/VscodeTypes'
+import { WorkItemLink, WorkItemReference } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces'
 
 const WORK_ITEM_LIMIT = 200
 
@@ -14,12 +15,17 @@ const defaultFields = `[${fields.join('], [')}]`
 export const listTasks = async (parentId?: number): Promise<WorkItem[]> => {
   logger.debug('Fetching tasks')
 
-  let query = `SELECT ${defaultFields} FROM WorkItems 
-	WHERE [System.IterationPath] = @CurrentIteration
-	AND [System.WorkItemType] = 'Task'`
-
+  let query = ''
   if (parentId) {
-    query += ` AND [System.Parent] = ${parentId}`
+    query = `SELECT ${defaultFields} FROM workitemLinks
+     WHERE ([Source].[System.Id] = ${parentId}) 
+     AND ([System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward') 
+     AND ( [Target].[System.WorkItemType] <> '') 
+    MODE (Recursive)`
+  } else {
+    query = `SELECT ${defaultFields} FROM WorkItems 
+              WHERE [System.IterationPath] = @CurrentIteration
+              AND [System.WorkItemType] IN GROUP 'Microsoft.TaskCategory'`
   }
 
   return queryTasks(query)
@@ -30,24 +36,40 @@ export const listParents = async (): Promise<WorkItem[]> => {
 
   const query = `SELECT ${defaultFields} FROM WorkItems
 	WHERE [System.IterationPath] = @CurrentIteration
-	AND ([System.WorkItemType] = 'Product Backlog Item'
-		OR [System.WorkItemType] = 'Bug')`
+	AND 
+  (
+      [System.WorkItemType] IN GROUP 'Microsoft.RequirementCategory' OR 
+      [System.WorkItemType] IN GROUP 'Microsoft.BugCategory' 
+  )`
 
   return queryTasks(query)
 }
 
 const queryTasks = async (query: string): Promise<WorkItem[]> => {
+  const relationsReducer = (targets: WorkItemReference[], rel: WorkItemLink) => {
+    if (rel.source && rel.target) {
+      targets.push(rel.target)
+    }
+    return targets
+  }
+
   const witApi = await getApi().getWorkItemTrackingApi()
 
-  const q = await witApi.queryByWiql({ query }, getTeamContext())
-  const chunks = chunk(q.workItems, WORK_ITEM_LIMIT)
+  const { workItems, workItemRelations, columns } = await witApi.queryByWiql({ query }, getTeamContext())
+
+  const items: WorkItemReference[] = [
+    workItems?.length ? workItems : [],
+    workItemRelations?.length ? workItemRelations.reduce(relationsReducer, []) : [],
+  ].flat()
+
+  const chunks = chunk(items, WORK_ITEM_LIMIT)
 
   let result = (
     await Promise.all(
       chunks.map((c) =>
         witApi.getWorkItemsBatch({
           ids: c?.map((i) => i.id!),
-          fields: q.columns && q.columns?.length ? q.columns.map((c) => c.referenceName as string) : undefined,
+          fields: columns && columns?.length ? columns.map((c) => c.referenceName as string) : undefined,
         })
       )
     )
