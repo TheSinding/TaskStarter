@@ -7,25 +7,12 @@ import * as config from '../../configuration'
 import { GitBranchStats } from 'azure-devops-node-api/interfaces/GitInterfaces'
 import { getBuiltInGitApi } from '../../git'
 import { CurrentTaskTracker } from '../../CurrentTaskTracker'
+import { Repository } from '../../@types/git'
 
-export const COMMAND = 'taskstarter.finishTask'
-
-type RepositoryPick = QuickPickItem & { repository: GitRepository }
 type BranchPick = QuickPickItem & { branch: GitBranchStats; isDefault: boolean }
 
+export const COMMAND = 'taskstarter.finishTask'
 export const finishTask = () => {
-  const fetchRepositories = async (): Promise<RepositoryPick[]> => {
-    const project = config.getProjectKey('devopsProject')
-    if (!project) {
-      throw new Error('Missing configuration key "project"')
-    }
-    const repositories = await getRepositories(project)
-    return repositories.map((r) => ({
-      label: r.name || '',
-      repository: r,
-    }))
-  }
-
   const fetchBranches = async (repository: GitRepository): Promise<any> => {
     const branches = await getBranches(repository as Required<GitRepository>)
     const { defaultBranch } = repository
@@ -43,24 +30,45 @@ export const finishTask = () => {
       .sort((a, b) => (a.isDefault > b.isDefault ? -1 : 1))
   }
 
+  const remoteRepositoryMatcher = (localRepository: Repository) => (remoteRepository: GitRepository) => {
+    // This probably have a high probability of not working ¯\_(ツ)_/¯
+    const { remotes } = localRepository.state
+    const { sshUrl, remoteUrl } = remoteRepository
+    const match = remotes.some(
+      (remoteRef) =>
+        remoteRef.pushUrl === sshUrl ||
+        remoteRef.pushUrl === remoteUrl ||
+        remoteRef.fetchUrl === sshUrl ||
+        remoteRef.fetchUrl === remoteUrl
+    )
+    return match
+  }
+
   const commandHandler = async () => {
     try {
+      const organization = config.getProjectKey('devopsOrganization')
+      const project = config.getProjectKey('devopsProject')
       const currentTask = CurrentTaskTracker.instance.currentTask
       const gitAPI = await getBuiltInGitApi()
 
-      const repository = gitAPI?.repositories[0]
-      if (!repository || !currentTask) {
+      const localRepository = gitAPI?.repositories[0]
+      if (!localRepository || !currentTask) {
         return
       }
-
-      const title = 'Pick the repository'
-      const placeHolder = 'Search for the repository you want to add a PR to'
-      const repositoryPick = await window.showQuickPick<RepositoryPick>(fetchRepositories(), { title, placeHolder })
-
-      if (!repositoryPick) {
-        return
+      if (!project) {
+        throw new Error('Missing configuration key "project"')
       }
-      const targetBranchPick = await window.showQuickPick<BranchPick>(fetchBranches(repositoryPick?.repository), {
+      const remoteRepositories = await getRepositories(project)
+      if (!remoteRepositories.length) {
+        throw new Error('No remote repositories found')
+      }
+
+      const remoteRepository = remoteRepositories.find(remoteRepositoryMatcher(localRepository))
+      if (!remoteRepository) {
+        throw new Error('No matching remote repository found')
+      }
+
+      const targetBranchPick = await window.showQuickPick<BranchPick>(fetchBranches(remoteRepository), {
         title: 'Select a target branch',
         placeHolder: 'Search for a target branch',
       })
@@ -74,23 +82,23 @@ export const finishTask = () => {
         return
       }
 
-      logger.debug('Finish task', repositoryPick?.repository.name)
-      if (!repository.state.HEAD || !CurrentTaskTracker.instance.currentTask) {
+      if (!localRepository.state.HEAD || !CurrentTaskTracker.instance.currentTask) {
         // TODO: Do some better error handling
         return
       }
 
-      const pr = await createPullRequest(
+      logger.debug(`Creating pull request for repository ${remoteRepository.name}`)
+
+      const pullRequest = await createPullRequest(
         currentTask.id as number,
         pullRequestTitle,
-        repositoryPick.repository,
-        repository.state.HEAD.name as string,
+        remoteRepository,
+        localRepository.state.HEAD.name as string,
         targetBranchPick.branch.name as string
       )
-      const organization = config.getProjectKey('devopsOrganization')
-      const project = config.getProjectKey('devopsProject')
-      const repositoryName = pr.repository?.name
-      const id = pr.pullRequestId
+
+      const repositoryName = pullRequest.repository?.name
+      const id = pullRequest.pullRequestId
 
       env.openExternal(
         Uri.parse(`https://dev.azure.com/${organization}/${project}/_git/${repositoryName}/pullrequest/${id}`)
