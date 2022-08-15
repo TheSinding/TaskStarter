@@ -3,7 +3,7 @@
   "displayName": "TaskStarter",
   "description": "Devops task starter, because starting a task is super annoying",
   "publisher": "thesinding",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "repository": {
     "url": "https://github.com/TheSinding/taskstarter"
   },
@@ -206,6 +206,7 @@
     "fast-memoize": "^2.5.2",
     "lodash": "^4.17.21",
     "moize": "^6.1.1",
-    "pino": "^8.1.0"
+    "pino": "^8.1.0",
+    "pino-pretty": "^9.0.0"
   }
 }
