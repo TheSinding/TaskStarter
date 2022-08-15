@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2022-08-15
+
+### Adds
+
+- Adds the ability to finish the current task, with a PR from vscode.
+	Just use the command "Finish current task" and it will create a draft pull request for you, open it on devops, and you can fill in the details.
+
 ## [0.2.2] - 2022-08-13
 
 ### Fixes
