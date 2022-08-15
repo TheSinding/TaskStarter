@@ -17,7 +17,7 @@ export const listTasks = async (parentId?: number): Promise<WorkItem[]> => {
 
   let query = ''
   if (parentId) {
-    query = `SELECT ${defaultFields} FROM workitemLinks
+    query = `SELECT ${defaultFields} FROM WorkItemLinks
      WHERE ([Source].[System.Id] = ${parentId}) 
      AND ([System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward') 
      AND ( [Target].[System.WorkItemType] <> '') 
@@ -87,7 +87,7 @@ const queryTasks = async (query: string): Promise<WorkItem[]> => {
 export const getTask = async (id: number, fields?: WorkItemField[]): Promise<WorkItem> => {
   const witApi = await getApi().getWorkItemTrackingApi()
 
-  const workItem = (await witApi.getWorkItem(id, fields as string[])) as WorkItem
+  const workItem = (await witApi.getWorkItem(id, fields)) as WorkItem
   if (!workItem) {
     throw new NotFoundError()
   }

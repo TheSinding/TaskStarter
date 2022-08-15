@@ -13,12 +13,15 @@ import { startTaskFromParent } from './commands/StartTask/startTaskFromParent'
 import { init as initTaskReference } from './taskReferenceItem'
 import { openOnDevOps } from './commands/openOnDevOps'
 import { logger } from './logger'
+import { finishTask } from './commands/FinishTask/finishTask'
+import { CurrentTaskTracker } from './CurrentTaskTracker'
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
   logger.debug('Congratulations, your extension "taskstarter" is now active!')
   initExt()
+  CurrentTaskTracker.init()
 
   context.subscriptions.push(
     setDevOpsPATToken(),
@@ -30,7 +33,8 @@ export function activate(context: vscode.ExtensionContext) {
     startTask(),
     startTaskFromParent(),
     openOnDevOps(),
-    initTaskReference()
+    initTaskReference(),
+    finishTask()
   )
 
   vscode.workspace.onDidChangeConfiguration((event) => {

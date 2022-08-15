@@ -3,7 +3,7 @@
   "displayName": "TaskStarter",
   "description": "Devops task starter, because starting a task is super annoying",
   "publisher": "thesinding",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "repository": {
     "url": "https://github.com/TheSinding/taskstarter"
   },
@@ -151,6 +151,12 @@
       {
         "command": "taskstarter.startTaskFromParent",
         "title": "Start task from Parent",
+        "category": "Task starter",
+        "enablement": "taskstarter.isInitialized"
+      },
+      {
+        "command": "taskstarter.finishTask",
+        "title": "Finish current task",
         "category": "Task starter",
         "enablement": "taskstarter.isInitialized"
       }
