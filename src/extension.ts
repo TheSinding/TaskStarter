@@ -19,7 +19,7 @@ import { CurrentTaskTracker } from './CurrentTaskTracker'
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-  logger.debug('Congratulations, your extension "taskstarter" is now active!')
+  logger.debug('TaskStarter is now active!')
   initExt()
   CurrentTaskTracker.init()
 
