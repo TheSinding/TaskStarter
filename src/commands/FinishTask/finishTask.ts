@@ -100,13 +100,27 @@ export const finishTask = () => {
       const repositoryName = pullRequest.repository?.name
       const id = pullRequest.pullRequestId
 
-      env.openExternal(
-        Uri.parse(`https://dev.azure.com/${organization}/${project}/_git/${repositoryName}/pullrequest/${id}`)
-      )
+      window
+        .showInformationMessage(
+          `Created a pull request for task "${currentTask.fields?.['System.Title']}"`,
+          OPEN_PULL_REQUEST_ITEM
+        )
+        .then((selection) => {
+          if (selection && selection === 'Open pull request') {
+            openPullRequest(organization as string, project, repositoryName as string, id as number)
+          }
+        })
     } catch (error: any) {
       logger.error(error)
       window.showErrorMessage(error.message)
     }
   }
   return commands.registerCommand(COMMAND, commandHandler)
+}
+
+const OPEN_PULL_REQUEST_ITEM = 'Open pull request'
+const openPullRequest = (organization: string, project: string, repositoryName: string, id: number) => {
+  env.openExternal(
+    Uri.parse(`https://dev.azure.com/${organization}/${project}/_git/${repositoryName}/pullrequest/${id}`)
+  )
 }
