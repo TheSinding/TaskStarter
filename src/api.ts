@@ -21,7 +21,6 @@ export const getApi = (instance: string = DEFAULT_INSTANCE_URL): WebApi => {
   const customInstance = config.getProjectKey('devopsInstanceURL') as string
   const organization = config.getProjectKey('devopsOrganization')
   const authHandler = getPersonalAccessTokenHandler(token)
-  logger.debug({ token, instance, organization })
   return new WebApi(
     `${customInstance ? (instance !== DEFAULT_INSTANCE_URL ? instance : customInstance) : instance}/${organization}`,
     authHandler
