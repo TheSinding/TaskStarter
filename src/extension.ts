@@ -69,7 +69,7 @@ const setInitialized = () => {
   vscode.commands.executeCommand('setContext', 'taskstarter.isInitialized', isInitialized())
 }
 
-const isInitialized = (): boolean =>
+export const isInitialized = (): boolean =>
   !!config.getProjectKey('devopsPATToken') &&
   !!config.getProjectKey('devopsProject') &&
   !!config.getProjectKey('devopsTeam') &&

@@ -1,16 +1,26 @@
-import { StatusBarAlignment, StatusBarItem, window } from 'vscode'
+import { StatusBarAlignment, StatusBarItem, window, workspace } from 'vscode'
 import { COMMAND as openOnDevOpsCommand } from './commands/openOnDevOps'
 import { WorkItem } from './commands/StartTask/types'
 import { CurrentTaskTracker } from './CurrentTaskTracker'
+import { isInitialized } from './extension'
 
 export const init = (): StatusBarItem => {
   const statusBarItem = window.createStatusBarItem(StatusBarAlignment.Left)
 
   const setup = async () => {
-    statusBarItem.show()
+    setVisibility()
     changeTitle()
     CurrentTaskTracker.instance.on('currentTaskChanged', changeTitle)
     CurrentTaskTracker.instance.on('fetchingCurrentTask', setLoading)
+    workspace.onDidChangeWorkspaceFolders(setVisibility)
+  }
+
+  const setVisibility = () => {
+    if (isInitialized()) {
+      statusBarItem.show()
+    } else {
+      statusBarItem.hide()
+    }
   }
 
   const setLoading = () => {
