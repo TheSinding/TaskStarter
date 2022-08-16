@@ -8,6 +8,7 @@ import { GitBranchStats } from 'azure-devops-node-api/interfaces/GitInterfaces'
 import { getBuiltInGitApi } from '../../git'
 import { CurrentTaskTracker } from '../../CurrentTaskTracker'
 import { Repository } from '../../@types/git'
+import { NoCurrentTaskFoundError } from '../../Errors/NoCurrentTaskFoundError'
 
 type BranchPick = QuickPickItem & { branch: GitBranchStats; isDefault: boolean }
 
@@ -34,11 +35,12 @@ export const finishTask = () => {
     // This probably have a high probability of not working ¯\_(ツ)_/¯
     const { remotes } = localRepository.state
     const { sshUrl, remoteUrl } = remoteRepository
+    const repoPathSSH = (sshUrl && sshUrl.replace(/.*\:/, '')) || ''
     const match = remotes.some(
       (remoteRef) =>
-        remoteRef.pushUrl === sshUrl ||
+        (remoteRef.pushUrl && repoPathSSH && remoteRef.pushUrl.includes(repoPathSSH)) ||
         remoteRef.pushUrl === remoteUrl ||
-        remoteRef.fetchUrl === sshUrl ||
+        (remoteRef.fetchUrl && repoPathSSH && remoteRef.fetchUrl.includes(repoPathSSH)) ||
         remoteRef.fetchUrl === remoteUrl
     )
     return match
@@ -52,18 +54,31 @@ export const finishTask = () => {
       const gitAPI = await getBuiltInGitApi()
 
       const localRepository = gitAPI?.repositories[0]
-      if (!localRepository || !currentTask) {
+      if (!localRepository) {
         return
       }
+
+      if (!currentTask) {
+        throw new NoCurrentTaskFoundError()
+      }
+
       if (!project) {
         throw new Error('Missing configuration key "project"')
       }
+
       const remoteRepositories = await getRepositories(project)
       if (!remoteRepositories.length) {
         throw new Error('No remote repositories found')
       }
 
       const remoteRepository = remoteRepositories.find(remoteRepositoryMatcher(localRepository))
+
+      if (remoteRepository) {
+        logger.debug(`Using repository "${remoteRepository.name}"`)
+      } else {
+        logger.error('Found no remote repo, matching the current local one')
+      }
+
       if (!remoteRepository) {
         throw new Error('No matching remote repository found')
       }
@@ -73,12 +88,16 @@ export const finishTask = () => {
         placeHolder: 'Search for a target branch',
       })
 
+      if (!targetBranchPick) {
+        return
+      }
+
       const pullRequestTitle = await window.showInputBox({
         title: 'Add a title to your pull request',
         value: currentTask.fields?.['System.Title'],
       })
 
-      if (!targetBranchPick || !pullRequestTitle) {
+      if (!pullRequestTitle) {
         return
       }
 

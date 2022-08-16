@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+
+## [0.4.1] - 2022-08-16
+
+### Fixes
+
+- Fixes the remote repository matching to the local one
+
+## [0.4.0] - 2022-08-15
+
+### Adds
+
+- Adds a output channel to help debugging
+
+
+
 ## [0.3.0] - 2022-08-15
 
 ### Adds
