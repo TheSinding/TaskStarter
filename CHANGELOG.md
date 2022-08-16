@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.4.2] - 2022-08-16
+
+### Fixes
+
+- Fixes the "Current task" item in statusbar showing all of the time
 
 ## [0.4.1] - 2022-08-16
 
