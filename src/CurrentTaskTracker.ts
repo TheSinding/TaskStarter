@@ -39,6 +39,7 @@ export class CurrentTaskTracker extends EventEmitter {
     this._repository.repository.onDidRunOperation((e) => {
       if (e.error) return
       if (e.operation === 'Config') this.stateChange()
+      // check ignore is done when the repo is open and ready
       if (e.operation === 'CheckIgnore') this.stateChange()
     })
   }
