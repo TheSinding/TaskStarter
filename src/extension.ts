@@ -39,9 +39,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   vscode.workspace.onDidChangeConfiguration((event) => {
     // TODO: add a isReady flag to commands
-    if (!event.affectsConfiguration(config.SECTION)) {
-      return
-    }
+    if (!event.affectsConfiguration(config.SECTION)) return
+
     setInitialized()
   })
 }
@@ -55,12 +54,8 @@ const initExt = () => {
     vscode.window
       .showInformationMessage('Task starter - Not initialized for this project', RUN_INIT, DONT_SHOW_AGAIN)
       .then((selection) => {
-        if (selection === RUN_INIT) {
-          vscode.commands.executeCommand(RUN_INIT_COMMAND)
-        }
-        if (selection === DONT_SHOW_AGAIN) {
-          config.update('hideInitPrompt', true, true)
-        }
+        if (selection === RUN_INIT) vscode.commands.executeCommand(RUN_INIT_COMMAND)
+        if (selection === DONT_SHOW_AGAIN) config.update('hideInitPrompt', true, true)
       })
   }
 }
