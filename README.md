@@ -14,12 +14,15 @@ Now you can start your task from the comfort of your lovely little memory-hoggin
 
 Just use the "Start new task" command, and it will display the tasks in the current iteration of your sprint!
 Find the task you want to work on and hit enter.
-It will magically create a new branch with the correct name for you, no need to intervene (there might be)!
+It will magically create a new branch with the correct name for you, no need to intervene
 
 
 ## Features
 
 - Easy fetch and picking of tasks in the current iteration
+- Listing parent tasks
+- Easily create a PR when you are done
+- Reference to current task in status bar
 - Creates a branch for the task
 - Moves task to the 'in progress' column of your sprint board
 - Automatically assigns you to the task if the task is unassigned
@@ -73,3 +76,4 @@ Token Permissions as a minimum
 | User profile     | `Read`                    |
 | Project and Team | `Read`                    |
 | Work Items       | `Read`, `Write`, `Manage` |
+| Code             | `Read`, `Write`           |
