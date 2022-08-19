@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.4.3] - 2022-08-20
+
+### Fixes
+
+- Fixes the current task tracker, so it does not rely on the ID of a work task in the branch name, but rather uses the `.git/config` file.
+It stores a `workitemid` key under the branch config in `.git/config`
+
 ## [0.4.2] - 2022-08-16
 
 ### Fixes

@@ -4,8 +4,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Uri, Event, Disposable, ProviderResult } from 'vscode'
+import { Uri, Event, Disposable, ProviderResult, CancellationToken } from 'vscode'
 export { ProviderResult } from 'vscode'
+import { ChildProcess, SpawnOptions as CPSpawnOptions } from 'child_process'
 
 export interface Git {
   readonly path: string
@@ -153,12 +154,20 @@ export interface BranchQuery {
   readonly count?: number
   readonly contains?: string
 }
+export interface OperationResult {
+  operation: `${Operation}`
+  error: any
+}
+export interface RepositoryExtra {
+  onDidRunOperation(fn: (event: OperationResult) => void): void
+}
 
 export interface Repository {
   readonly rootUri: Uri
   readonly inputBox: InputBox
   readonly state: RepositoryState
   readonly ui: RepositoryUIState
+  readonly repository: RepositoryExtra
 
   getConfigs(): Promise<{ key: string; value: string }[]>
   getConfig(key: string): Promise<string>
@@ -265,7 +274,23 @@ export interface PublishEvent {
   repository: Repository
   branch?: string
 }
+export interface SpawnOptions extends CPSpawnOptions {
+  input?: string
+  encoding?: string
+  log?: boolean
+  cancellationToken?: CancellationToken
+  onSpawn?: (childProcess: ChildProcess) => void
+}
 
+export interface IGit {
+  exec(cwd: string, args: string[], options?: SpawnOptions): Promise<IExecutionResult<string>>
+}
+
+export interface IExecutionResult<T extends string | Buffer> {
+  exitCode: number
+  stdout: T
+  stderr: string
+}
 export interface API {
   readonly state: APIState
   readonly onDidChangeState: Event<APIState>
@@ -274,6 +299,9 @@ export interface API {
   readonly repositories: Repository[]
   readonly onDidOpenRepository: Event<Repository>
   readonly onDidCloseRepository: Event<Repository>
+  readonly _model: {
+    git: IGit
+  }
 
   toGitUri(uri: Uri, ref: string): Uri
   getRepository(uri: Uri): Repository | null
@@ -339,4 +367,54 @@ export const enum GitErrorCodes {
   PatchDoesNotApply = 'PatchDoesNotApply',
   NoPathFound = 'NoPathFound',
   UnknownPath = 'UnknownPath',
+}
+
+export const enum Operation {
+  Status = 'Status',
+  Config = 'Config',
+  Diff = 'Diff',
+  MergeBase = 'MergeBase',
+  Add = 'Add',
+  Remove = 'Remove',
+  RevertFiles = 'RevertFiles',
+  Commit = 'Commit',
+  Clean = 'Clean',
+  Branch = 'Branch',
+  GetBranch = 'GetBranch',
+  GetBranches = 'GetBranches',
+  SetBranchUpstream = 'SetBranchUpstream',
+  HashObject = 'HashObject',
+  Checkout = 'Checkout',
+  CheckoutTracking = 'CheckoutTracking',
+  Reset = 'Reset',
+  Remote = 'Remote',
+  Fetch = 'Fetch',
+  Pull = 'Pull',
+  Push = 'Push',
+  CherryPick = 'CherryPick',
+  Sync = 'Sync',
+  Show = 'Show',
+  Stage = 'Stage',
+  GetCommitTemplate = 'GetCommitTemplate',
+  DeleteBranch = 'DeleteBranch',
+  RenameBranch = 'RenameBranch',
+  DeleteRef = 'DeleteRef',
+  Merge = 'Merge',
+  Rebase = 'Rebase',
+  Ignore = 'Ignore',
+  Tag = 'Tag',
+  DeleteTag = 'DeleteTag',
+  Stash = 'Stash',
+  CheckIgnore = 'CheckIgnore',
+  GetObjectDetails = 'GetObjectDetails',
+  SubmoduleUpdate = 'SubmoduleUpdate',
+  RebaseAbort = 'RebaseAbort',
+  RebaseContinue = 'RebaseContinue',
+  FindTrackingBranches = 'GetTracking',
+  Apply = 'Apply',
+  Blame = 'Blame',
+  Log = 'Log',
+  LogFile = 'LogFile',
+
+  Move = 'Move',
 }

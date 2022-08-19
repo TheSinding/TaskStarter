@@ -1,10 +1,10 @@
 import { ok } from 'assert'
 import EventEmitter = require('events')
 import { Repository } from './@types/git'
+
 import { getTask } from './commands/StartTask/api'
 import { WorkItem } from './commands/StartTask/types'
-import { getBuiltInGitApi } from './git'
-import { getBranchName } from './utils/getBranchName'
+import { CustomGitAPI, getBuiltInGitApi } from './git'
 
 interface CurrentTaskEvents {
   currentTaskChanged: (workItem?: WorkItem) => void
@@ -17,11 +17,13 @@ export declare interface CurrentTaskTracker {
   emit<U extends keyof CurrentTaskEvents>(event: U, ...args: Parameters<CurrentTaskEvents[U]>): boolean
 }
 
+export const getWorkItemStateKey = (branchName: string) => `branch.${branchName}.workitemid`
+
 export class CurrentTaskTracker extends EventEmitter {
   private static _instance: CurrentTaskTracker
   private _repository: Repository | undefined
   private _currentTask: WorkItem | undefined
-  private _prevBranchName: string = ''
+  private _gitAPI?: CustomGitAPI
 
   constructor() {
     super()
@@ -29,48 +31,50 @@ export class CurrentTaskTracker extends EventEmitter {
   }
 
   private async setup() {
-    const gitAPI = await getBuiltInGitApi()
+    this._gitAPI = await getBuiltInGitApi()
 
-    this._repository = gitAPI?.repositories[0]
+    this._repository = this._gitAPI?.repositories[0]
+    if (!this._repository) return
 
-    if (!this._repository) {
-      return
-    }
-
-    this._repository.state.onDidChange(() => this.branchChanged())
-    this.branchChanged()
+    this._repository.repository.onDidRunOperation((e) => {
+      if (e.error) return
+      if (e.operation === 'Config') this.stateChange()
+      // check ignore is done when the repo is open and ready
+      if (e.operation === 'CheckIgnore') this.stateChange()
+    })
   }
 
-  private branchChanged() {
-    if (!this._repository || this._repository.state.HEAD?.name === this._prevBranchName) {
-      return
-    }
-    if (this._repository.state.HEAD) {
-      this._prevBranchName = this._repository.state.HEAD.name as string
-      const branchName = getBranchName(this._repository!)
-      this.setCurrentTask(branchName)
-    }
-  }
+  private async stateChange() {
+    if (!this._repository) return
 
-  private getTaskID(branchName: string): string | undefined {
-    const regex = /\/([0-9]+)-/
-    const match = branchName.match(regex)
-    if (match?.length && match.length > 1) {
-      return match[1]
-    }
-    return undefined
-  }
+    const branchName = this._repository.state.HEAD?.name
+    if (!branchName) return
 
-  private async setCurrentTask(branchName: string) {
-    this.emit('fetchingCurrentTask')
-    const taskId = this.getTaskID(branchName)
-    if (taskId) {
-      const task = await getTask(Number(taskId))
-      if (task) {
-        this._currentTask = task
+    try {
+      const configKey = getWorkItemStateKey(branchName)
+      const executedCmd = await this._gitAPI?.getConfigKey(this._repository?.rootUri.path, configKey)
+      const workItemId = executedCmd?.stdout.trim()
+
+      if (!workItemId) {
+        this.unsetCurrentTask()
       } else {
-        this._currentTask = undefined
+        if (this._currentTask?.id !== Number(workItemId)) this.setCurrentTask(workItemId)
       }
+    } catch (error) {
+      this.unsetCurrentTask()
+    }
+  }
+
+  private async unsetCurrentTask() {
+    this._currentTask = undefined
+    this.emit('currentTaskChanged', this._currentTask)
+  }
+
+  private async setCurrentTask(taskId: string) {
+    this.emit('fetchingCurrentTask')
+    const task = await getTask(Number(taskId))
+    if (task) {
+      this._currentTask = task
     } else {
       this._currentTask = undefined
     }

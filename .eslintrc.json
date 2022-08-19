@@ -13,7 +13,10 @@
     ],
     "rules": {
         "@typescript-eslint/naming-convention": "warn",
-        "curly": "warn",
+        "curly": [
+            "warn",
+            "multi-line"
+        ],
         "eqeqeq": "warn",
         "no-throw-literal": "warn",
         "no-console": "warn",
