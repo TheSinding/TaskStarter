@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.4.4] - 2022-08-25
+
+### Fixes
+
+- Fies current task not being set when a user reloads the window
+
 ## [0.4.3] - 2022-08-20
 
 ### Fixes

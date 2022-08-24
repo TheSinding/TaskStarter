@@ -3,7 +3,7 @@
   "displayName": "TaskStarter",
   "description": "Devops task starter, because starting a task is super annoying",
   "publisher": "thesinding",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "repository": {
     "url": "https://github.com/TheSinding/taskstarter"
   },
@@ -100,6 +100,11 @@
                 "type": "string",
                 "default": "",
                 "description": "The column name of the 'in-progress' column."
+              },
+              "defaultProjectBoardId": {
+                "type": "string",
+                "default": "",
+                "description": "The ID of the default project board."
               }
             }
           }
@@ -140,6 +145,11 @@
       {
         "command": "taskstarter.setDevOpsTeam",
         "title": "Select DevOps Team",
+        "category": "Task starter"
+      },
+      {
+        "command": "taskstarter.moveTaskToInProgress",
+        "title": "Move task",
         "category": "Task starter"
       },
       {
