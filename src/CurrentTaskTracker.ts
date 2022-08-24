@@ -24,6 +24,7 @@ export class CurrentTaskTracker extends EventEmitter {
   private _repository: Repository | undefined
   private _currentTask: WorkItem | undefined
   private _gitAPI?: CustomGitAPI
+  private _prevBranchName = ""
 
   constructor() {
     super()
@@ -36,19 +37,15 @@ export class CurrentTaskTracker extends EventEmitter {
     this._repository = this._gitAPI?.repositories[0]
     if (!this._repository) return
 
-    this._repository.repository.onDidRunOperation((e) => {
-      if (e.error) return
-      if (e.operation === 'Config') this.stateChange()
-      // check ignore is done when the repo is open and ready
-      if (e.operation === 'CheckIgnore') this.stateChange()
-    })
+    this._repository.state.onDidChange(() => this.stateChange())
   }
 
   private async stateChange() {
     if (!this._repository) return
 
     const branchName = this._repository.state.HEAD?.name
-    if (!branchName) return
+    if (!branchName || branchName === this._prevBranchName) return
+    this._prevBranchName = branchName
 
     try {
       const configKey = getWorkItemStateKey(branchName)
