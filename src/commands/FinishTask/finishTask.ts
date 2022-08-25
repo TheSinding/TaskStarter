@@ -2,13 +2,16 @@
 import { GitRepository } from 'azure-devops-node-api/interfaces/TfvcInterfaces'
 import { commands, QuickPickItem, window, env, Uri } from 'vscode'
 import { logger } from '../../logger'
-import { createPullRequest, getBranches, getRepositories } from './api'
+import { CreatePullRequest, createPullRequest, getBranches, getRepositories } from './api'
 import * as config from '../../configuration'
 import { GitBranchStats } from 'azure-devops-node-api/interfaces/GitInterfaces'
 import { getBuiltInGitApi } from '../../git'
 import { CurrentTaskTracker } from '../../CurrentTaskTracker'
 import { Repository } from '../../@types/git'
 import { NoCurrentTaskFoundError } from '../../Errors/NoCurrentTaskFoundError'
+import { NoUpstreamRefError } from './errors/NoUpstreamRefError'
+import { MissingConfigurationKeysError } from '../../Errors/MissingConfigurationKeysError'
+import { showProgressNotification } from '../../utils/showProgressNotification'
 
 type BranchPick = QuickPickItem & { branch: GitBranchStats; isDefault: boolean }
 
@@ -54,22 +57,13 @@ export const finishTask = () => {
       const gitAPI = await getBuiltInGitApi()
 
       const localRepository = gitAPI?.repositories[0]
-      if (!localRepository) {
-        return
-      }
-
-      if (!currentTask) {
-        throw new NoCurrentTaskFoundError()
-      }
-
-      if (!project) {
-        throw new Error('Missing configuration key "project"')
-      }
+      if (!localRepository) return
+      if (!localRepository.state.HEAD?.upstream) throw new NoUpstreamRefError()
+      if (!currentTask) throw new NoCurrentTaskFoundError()
+      if (!project) throw new MissingConfigurationKeysError("project")
 
       const remoteRepositories = await getRepositories(project)
-      if (!remoteRepositories.length) {
-        throw new Error('No remote repositories found')
-      }
+      if (!remoteRepositories.length) throw new Error('No remote repositories found')
 
       const remoteRepository = remoteRepositories.find(remoteRepositoryMatcher(localRepository))
 
@@ -79,42 +73,31 @@ export const finishTask = () => {
         logger.error('Found no remote repo, matching the current local one')
       }
 
-      if (!remoteRepository) {
-        throw new Error('No matching remote repository found')
-      }
+      if (!remoteRepository) throw new Error('No matching remote repository found')
 
       const targetBranchPick = await window.showQuickPick<BranchPick>(fetchBranches(remoteRepository), {
         title: 'Select a target branch',
         placeHolder: 'Search for a target branch',
       })
-
-      if (!targetBranchPick) {
-        return
-      }
+      if (!targetBranchPick) return
 
       const pullRequestTitle = await window.showInputBox({
         title: 'Add a title to your pull request',
         value: currentTask.fields?.['System.Title'],
       })
-
-      if (!pullRequestTitle) {
-        return
-      }
-
-      if (!localRepository.state.HEAD || !CurrentTaskTracker.instance.currentTask) {
-        // TODO: Do some better error handling
-        return
-      }
+      if (!pullRequestTitle) return
 
       logger.debug(`Creating pull request for repository ${remoteRepository.name}`)
 
-      const pullRequest = await createPullRequest(
-        currentTask.id as number,
-        pullRequestTitle,
-        remoteRepository,
-        localRepository.state.HEAD.name as string,
-        targetBranchPick.branch.name as string
-      )
+      const pullRequestObject: CreatePullRequest = {
+        taskId: currentTask.id as number,
+        title: pullRequestTitle,
+        repository: remoteRepository,
+        source: localRepository.state!.HEAD.name as string,
+        target: targetBranchPick.branch.name as string
+      }
+
+      const pullRequest = await showProgressNotification("Creating pull request", createPullRequest(pullRequestObject))
 
       const repositoryName = pullRequest.repository?.name
       const id = pullRequest.pullRequestId

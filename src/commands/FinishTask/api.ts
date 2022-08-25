@@ -5,12 +5,16 @@ import * as config from '../../configuration'
 import { logger } from '../../logger'
 import { ActivePullRequestExistsError } from './errors/ActivePullRequestExistsError'
 
-export const createPullRequest = async (
+export interface CreatePullRequest {
   taskId: number,
   title: string,
   repository: GitRepository,
   source: string,
   target: string
+}
+
+export const createPullRequest = async (
+  { taskId, title, repository, source, target }: CreatePullRequest
 ): Promise<GitPullRequest> => {
   try {
     const devopsGitApi = await getApi().getGitApi()
@@ -29,9 +33,7 @@ export const createPullRequest = async (
       ],
     }
 
-    const response = await devopsGitApi.createPullRequest(pullRequest, repository.id as string, project)
-
-    return response
+    return await devopsGitApi.createPullRequest(pullRequest, repository.id as string, project)
   } catch (error) {
     logger.error(error)
     if (error instanceof Error && error.message.includes('active pull request')) {
