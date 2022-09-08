@@ -160,6 +160,7 @@ export interface OperationResult {
 }
 export interface RepositoryExtra {
   onDidRunOperation(fn: (event: OperationResult) => void): void
+  onDidChangeState: Event<RepositoryState>
 }
 
 export interface Repository {
