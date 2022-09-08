@@ -5,6 +5,9 @@ import { Repository } from './@types/git'
 import { getTask } from './commands/StartTask/api'
 import { WorkItem } from './commands/StartTask/types'
 import { CustomGitAPI, getBuiltInGitApi } from './git'
+import { createNamespaced } from './logger'
+
+const logger = createNamespaced("CurrentTaskTracker")
 
 interface CurrentTaskEvents {
   currentTaskChanged: (workItem?: WorkItem) => void
@@ -37,14 +40,21 @@ export class CurrentTaskTracker extends EventEmitter {
     this._repository = this._gitAPI?.repositories[0]
     if (!this._repository) return
 
-    this._repository.state.onDidChange(() => this.stateChange())
+    this._repository.state.onDidChange(() => this._stateChange())
+
+    this._repository.repository.onDidRunOperation((e) => {
+      if (e.operation === "Checkout") this._stateChange()
+      if (e.operation === "Config") this._stateChange()
+    })
+    this._stateChange()
   }
 
-  private async stateChange() {
+  private async _stateChange() {
     if (!this._repository) return
 
     const branchName = this._repository.state.HEAD?.name
     if (!branchName || branchName === this._prevBranchName) return
+    logger.debug("Branch changed")
     this._prevBranchName = branchName
 
     try {
@@ -53,27 +63,32 @@ export class CurrentTaskTracker extends EventEmitter {
       const workItemId = executedCmd?.stdout.trim()
 
       if (!workItemId) {
-        this.unsetCurrentTask()
+        logger.debug("Found no current task")
+        this._unsetCurrentTask()
       } else {
-        if (this._currentTask?.id !== Number(workItemId)) this.setCurrentTask(workItemId)
+        if (this._currentTask?.id !== Number(workItemId)) this._setCurrentTask(workItemId)
       }
     } catch (error) {
-      this.unsetCurrentTask()
+      logger.error(error, "Failed to get work task ID")
+      this._unsetCurrentTask()
     }
   }
 
-  private async unsetCurrentTask() {
+  private async _unsetCurrentTask() {
     this._currentTask = undefined
     this.emit('currentTaskChanged', this._currentTask)
   }
 
-  private async setCurrentTask(taskId: string) {
+  private async _setCurrentTask(taskId: string) {
     this.emit('fetchingCurrentTask')
     const task = await getTask(Number(taskId))
+
     if (task) {
+      logger.debug(`Current task: ${task.fields?.['System.Title']}`)
       this._currentTask = task
     } else {
-      this._currentTask = undefined
+      logger.error("Failed to find the current task")
+      this._unsetCurrentTask()
     }
     this.emit('currentTaskChanged', this._currentTask)
   }
