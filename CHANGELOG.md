@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.4.6] - 2022-08-25
+
+### Fixes
+
+- Fixes current task for good (i hope)
+
 ## [0.4.5] - 2022-08-25
 
 ### Fixes
