@@ -6,7 +6,7 @@ import { getProfile } from '../../api'
 import { WorkItem } from '../../@types/azure'
 
 export const COMMAND = 'taskstarter.addNewTask'
-const logger = createNamespaced(COMMNAD)
+const logger = createNamespaced(COMMAND)
 
 type ValidationResult =
   | string
