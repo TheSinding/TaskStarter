@@ -1,27 +1,36 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { commands, QuickPickItem, ThemeIcon, window, workspace, ExtensionContext } from 'vscode'
+import { commands, ThemeIcon, window } from 'vscode'
 import { assignTask, getParentType, getTaskColumns, listTasks, moveTaskToColumn } from './api'
 import { getProfile } from '../../api'
-import { logger } from '../../logger'
+import { createNamespaced } from '../../logger'
 import * as config from '../../configuration'
-import { TaskPick, UserInfo, WorkItem } from './types'
+import { TaskPick } from './types'
 import { NoWorkItemsError } from './NoWorkItemsError'
 import { COMMAND as startFromParentCommand } from './startTaskFromParent'
-import { getWorkItemIcon, nameBranch, stripIcons } from './utils'
+import { getWorkItemIcon, nameBranch } from './utils'
 import { COMMAND as openOnDevOpsCommand } from '../openOnDevOps'
-import { WorkItemType } from '../../@types/VscodeTypes'
+import { COMMAND as addNewTaskCommand } from '../AddTask/AddTask'
+import { WorkItemType, WorkItem, UserInfo } from '../../@types/azure'
 import { getBuiltInGitApi } from '../../git'
 import { createQuickPickHelper } from '../../utils/createQuickPickHelper'
 import { Repository } from '../../@types/git'
 import { getWorkItemStateKey } from '../../CurrentTaskTracker'
+import { showProgressNotification } from '../../utils/showProgressNotification'
 
 // TODO: Simplify this file, please
 
 export const COMMAND = 'taskstarter.startTask'
+const logger = createNamespaced(COMMAND)
 
-const GO_BACK_ITEM: QuickPickItem = {
+const GO_BACK_ITEM: TaskPick = {
   label: '$(arrow-left) Go back',
   alwaysShow: true,
+  command: startFromParentCommand,
+}
+const ADD_NEW_TAASK_ITEM: TaskPick = {
+  label: '$(plus) Add a task',
+  alwaysShow: true,
+  command: addNewTaskCommand,
 }
 
 const taskMapper = (task: WorkItem): TaskPick => {
@@ -38,6 +47,7 @@ const taskMapper = (task: WorkItem): TaskPick => {
     label: `${getWorkItemIcon(task.fields?.['System.WorkItemType'])} ${task.fields!['System.Title']}`,
     description: `${task.id}`,
     detail: [assignedToText, taskWeightText, taskStateText].join(' | '),
+    taskName: task.fields!['System.Title'],
     buttons,
   }
 }
@@ -54,13 +64,13 @@ export const startTask = () => {
     try {
       const _tasks = await listTasks(parentId)
       const tasks = _tasks.filter(taskFilter).map(taskMapper).reverse()
-      return parentId ? [GO_BACK_ITEM, ...tasks] : tasks
+      return parentId ? [GO_BACK_ITEM, ADD_NEW_TAASK_ITEM, ...tasks] : tasks
     } catch (error) {
       throw error
     }
   }
 
-  const commandHandler = async (parentId?: number, parentType?: WorkItemType) => {
+  const commandHandler = async (parentItem: WorkItem) => {
     try {
       const gitApi = await getBuiltInGitApi()
       if (!gitApi) throw new Error('Could not find git API')
@@ -69,8 +79,6 @@ export const startTask = () => {
       const title = 'Pick a task'
       const placeholder = 'Search by assignee, name or task ID'
       logger.debug('Getting tasks')
-
-      window.showInformationMessage(`Getting tasks from ${parentId ? 'parent' : 'current iteration'}`)
 
       const picker = createQuickPickHelper<TaskPick>({
         title,
@@ -83,7 +91,9 @@ export const startTask = () => {
 
       picker.show()
 
-      picker.items = await getTaskOptions(parentId)
+      const notificationTitle = `Getting tasks from ${parentItem.id ? 'parent' : 'current iteration'}`
+
+      picker.items = await showProgressNotification(notificationTitle, getTaskOptions(parentItem.id))
       picker.busy = false
 
       picker.onDidAccept(() => {
@@ -93,25 +103,24 @@ export const startTask = () => {
         picker.busy = true
         picker.keepScrollPosition = true
 
-        changeTask(picker.selectedItems[0], repository, parentType)
+        changeTask(picker.selectedItems[0], repository, parentItem)
       })
 
       picker.onDidTriggerItemButton(({ item }) => commands.executeCommand(openOnDevOpsCommand, item.description))
     } catch (error: any) {
       logger.error(error)
-      if (error instanceof NoWorkItemsError && parentId) {
-        window.showErrorMessage('No new work items in parent')
-        commands.executeCommand(startFromParentCommand)
+      if (error instanceof NoWorkItemsError && !!parentItem) {
+        window.showErrorMessage(error.message)
       } else window.showErrorMessage(error.message)
     }
   }
 
-  const changeTask = async (taskPick: TaskPick, repository: Repository, parentType?: WorkItemType) => {
-    if (stripIcons(taskPick.label).toLowerCase().includes('go back') && taskPick.alwaysShow) {
-      return commands.executeCommand(startFromParentCommand)
+  const changeTask = async (taskPick: TaskPick, repository: Repository, parentItem: WorkItem) => {
+    if (taskPick.command) {
+      return commands.executeCommand(taskPick.command, parentItem)
     }
 
-    let _parentType: WorkItemType | undefined = parentType
+    let _parentType: WorkItemType | undefined = parentItem.fields?.['System.WorkItemType']
 
     if (!_parentType) _parentType = await getParentType(Number(taskPick.description))
 
