@@ -1,15 +1,18 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { commands, ThemeIcon, window } from 'vscode'
-import { logger } from '../../logger'
-import { TaskPick, UserInfo, WorkItem } from './types'
+import { createNamespaced } from '../../logger'
 import { listParents } from './api'
-import { WorkItemType } from '../../@types/VscodeTypes'
 import { getWorkItemIcon } from './utils'
 import { COMMAND as startTaskCommand } from './startTask'
 import { COMMAND as openOnDevOpsCommand } from '../openOnDevOps'
 import { createQuickPickHelper } from '../../utils/createQuickPickHelper'
+import { showProgressNotification } from '../../utils/showProgressNotification'
+import { TaskPick } from './types'
+import { WorkItem } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces'
+import { UserInfo, WorkItemType } from '../../@types/azure'
 
 export const COMMAND = 'taskstarter.startTaskFromParent'
+const logger = createNamespaced(COMMAND)
 
 const commandHandler = async () => {
   try {
@@ -17,15 +20,14 @@ const commandHandler = async () => {
       if (!selectedItems.length) {
         return
       }
-      const { description: id, taskType } = selectedItems[0]
-      commands.executeCommand(startTaskCommand, id, taskType)
+
+      commands.executeCommand(startTaskCommand, selectedItems[0].workItem)
     }
 
     const title = 'Start task from parent'
     const placeholder = 'Search by assignee, name or task ID'
 
     logger.debug('Getting Parents')
-    window.showInformationMessage('Getting parents in current iteration')
 
     const picker = createQuickPickHelper<TaskPick>({
       title,
@@ -38,7 +40,8 @@ const commandHandler = async () => {
 
     picker.show()
 
-    const parents = await listParents()
+    const notificationTitle = 'Getting parents in current iteration'
+    const parents = await showProgressNotification(notificationTitle, listParents())
     picker.items = parents.filter(itemFilter).map(itemMapper).reverse()
     picker.busy = false
 
@@ -66,6 +69,8 @@ const itemMapper = (workItem: WorkItem): TaskPick => {
     detail: [taskTypeText, assignedToText, taskStateText].join(' | '),
     buttons,
     taskType: itemType,
+    taskUrl: workItem.url,
+    workItem: workItem,
   }
 }
 

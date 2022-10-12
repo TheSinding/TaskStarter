@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as config from '../../configuration'
-import { WorkItemType, ThemeIconName } from '../../@types/VscodeTypes'
+import { WorkItemType } from '../../@types/azure'
 import { sanitize } from '../../utils/sanitizeBranch'
 import { QuickPickItem } from 'vscode'
+import { ThemeIconName } from '../../@types/VscodeTypes'
 
 type BranchType = 'feature' | 'bugfix' | 'hotfix'
 type BowtieIconName = 'symbol-list' | 'symbol-bug' | 'symbol-task'
