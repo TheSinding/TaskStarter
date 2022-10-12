@@ -5,7 +5,6 @@ import { getProfile } from '../../api'
 import { createNamespaced } from '../../logger'
 import * as config from '../../configuration'
 import { TaskPick } from './types'
-import { NoWorkItemsError } from './NoWorkItemsError'
 import { COMMAND as startFromParentCommand } from './startTaskFromParent'
 import { getWorkItemIcon, nameBranch } from './utils'
 import { COMMAND as openOnDevOpsCommand } from '../openOnDevOps'
@@ -27,7 +26,7 @@ const GO_BACK_ITEM: TaskPick = {
   alwaysShow: true,
   command: startFromParentCommand,
 }
-const ADD_NEW_TAASK_ITEM: TaskPick = {
+const ADD_NEW_TASK_ITEM: TaskPick = {
   label: '$(plus) Add a task',
   alwaysShow: true,
   command: addNewTaskCommand,
@@ -64,8 +63,9 @@ export const startTask = () => {
     try {
       const _tasks = await listTasks(parentId)
       const tasks = _tasks.filter(taskFilter).map(taskMapper).reverse()
-      return parentId ? [GO_BACK_ITEM, ADD_NEW_TAASK_ITEM, ...tasks] : tasks
+      return parentId ? [GO_BACK_ITEM, ADD_NEW_TASK_ITEM, ...tasks] : tasks
     } catch (error) {
+      if (parentId) return [GO_BACK_ITEM, ADD_NEW_TASK_ITEM]
       throw error
     }
   }
@@ -109,9 +109,7 @@ export const startTask = () => {
       picker.onDidTriggerItemButton(({ item }) => commands.executeCommand(openOnDevOpsCommand, item.description))
     } catch (error: any) {
       logger.error(error)
-      if (error instanceof NoWorkItemsError && !!parentItem) {
-        window.showErrorMessage(error.message)
-      } else window.showErrorMessage(error.message)
+      window.showErrorMessage(error.message)
     }
   }
 
