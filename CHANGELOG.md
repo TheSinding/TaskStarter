@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.5.2] - 2022-10-12
+
+### Fixes
+
+- Fixes infinite loading
+
 ## [0.5.1] - 2022-10-12
 
 ### Fixes
