@@ -15,6 +15,7 @@ import { openOnDevOps } from './commands/openOnDevOps'
 import { logger } from './logger'
 import { finishTask } from './commands/FinishTask/finishTask'
 import { CurrentTaskTracker } from './CurrentTaskTracker'
+import { addNewTask } from './commands/AddTask/AddTask'
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -30,6 +31,7 @@ export function activate(context: vscode.ExtensionContext) {
     setDevopsProject(),
     setDevopsTeam(),
     runInit(),
+    addNewTask(),
     startTask(),
     startTaskFromParent(),
     openOnDevOps(),
