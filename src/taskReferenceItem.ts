@@ -1,6 +1,6 @@
 import { StatusBarAlignment, StatusBarItem, window, workspace } from 'vscode'
 import { COMMAND as openOnDevOpsCommand } from './commands/openOnDevOps'
-import { WorkItem } from './commands/StartTask/types'
+import { WorkItem } from './@types/azure'
 import { CurrentTaskTracker } from './CurrentTaskTracker'
 import { isInitialized } from './extension'
 

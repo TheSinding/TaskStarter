@@ -3,7 +3,7 @@ import EventEmitter = require('events')
 import { Repository } from './@types/git'
 
 import { getTask } from './commands/StartTask/api'
-import { WorkItem } from './commands/StartTask/types'
+import { WorkItem } from './@types/azure'
 import { CustomGitAPI, getBuiltInGitApi } from './git'
 import { createNamespaced } from './logger'
 

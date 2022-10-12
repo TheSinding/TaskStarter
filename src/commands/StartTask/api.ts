@@ -1,12 +1,11 @@
-import { Profile } from 'azure-devops-node-api/interfaces/ProfileInterfaces'
 import { getApi, getTeamContext } from '../../api'
 import { NotFoundError } from '../../Errors/NotFoundError'
 import { chunk } from 'lodash'
-import { logger } from '../../logger'
+import { createNamespaced } from '../../logger'
 import { NoWorkItemsError } from './NoWorkItemsError'
-import { fields, WorkItem, WorkItemField } from './types'
-import { WorkItemType } from '../../@types/VscodeTypes'
 import { WorkItemLink, WorkItemReference } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces'
+import { fields, FullProfile, WorkItem, WorkItemField, WorkItemType } from '../../@types/azure'
+
 
 const WORK_ITEM_LIMIT = 200
 
