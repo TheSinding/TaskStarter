@@ -123,27 +123,39 @@ export const startTask = () => {
       value: branchName,
     })
 
-    if (!confirmedBranchName) throw new Error('Canceled changing task')
+    try {
+      if (!confirmedBranchName) throw new Error('Canceled changing task')
 
-    logger.debug(`Starting task: "${taskPick.label}"`)
+      const notificationTitle = `Starting task: "${taskPick.taskName}"`
+      await showProgressNotification(notificationTitle, repository.createBranch(confirmedBranchName, true))
 
-    await repository.createBranch(confirmedBranchName, true)
+      // Set the work id in .git/config under newly created branch
+      const configKey = getWorkItemStateKey(confirmedBranchName)
+      repository.setConfig(configKey, taskPick.description as string)
 
-    // Set the work id in .git/config under newly created branch
-    const configKey = getWorkItemStateKey(confirmedBranchName)
-    repository.setConfig(configKey, taskPick.description as string)
+      logger.debug(`Task started successfully`)
+      window.showInformationMessage(`Started task: "${taskPick.taskName!}"`)
 
-    // Try and fetch the current users profile to assign the task
-    if (config.getProjectKey('autoAssignTask', true)) {
-      getProfile()
-        .then((me) => assignTask(Number(taskPick.description), me))
-        .catch((e) => {
-          logger.error(e)
-          window.showErrorMessage('Failed to assign task to you.')
-        })
+      // Try and fetch the current users profile to assign the task
+      if (config.getProjectKey('autoAssignTask', true)) {
+        getProfile()
+          .then((me) => assignTask(Number(taskPick.description), me))
+          .catch((e) => {
+            logger.error(e)
+            window.showErrorMessage('Failed to assign task to you.')
+          })
+      }
+
+      if (config.getProjectKey('autoMoveTaskToInProgress', true)) moveTask(Number(taskPick.description))
+    } catch (error: any) {
+      logger.error(error)
+      if (error.stderr) {
+        const message = error.stderr.replace('fatal:', '').trim()
+        window.showErrorMessage(message)
+      } else {
+        window.showErrorMessage(error.message)
+      }
     }
-
-    if (config.getProjectKey('autoMoveTaskToInProgress', true)) moveTask(Number(taskPick.description))
   }
 
   const moveTask = async (taskId: number) => {
