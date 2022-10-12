@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2022-10-12
+
+### Fixes
+
+- Fixes current task tracker for good (i motherfucking hope)
+
+### Adds
+
+- Adds a "Add task" feature, so you can quickly add a task to a parent from vscode
+- Adds namespaced loggers in output, to help development
+
 ## [0.4.6] - 2022-08-25
 
 ### Fixes
