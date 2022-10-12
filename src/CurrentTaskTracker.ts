@@ -7,7 +7,7 @@ import { WorkItem } from './@types/azure'
 import { CustomGitAPI, getBuiltInGitApi } from './git'
 import { createNamespaced } from './logger'
 
-const logger = createNamespaced("CurrentTaskTracker")
+const logger = createNamespaced('CurrentTaskTracker')
 
 interface CurrentTaskEvents {
   currentTaskChanged: (workItem?: WorkItem) => void

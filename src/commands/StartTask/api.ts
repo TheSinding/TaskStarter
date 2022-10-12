@@ -6,6 +6,7 @@ import { NoWorkItemsError } from './NoWorkItemsError'
 import { WorkItemLink, WorkItemReference } from 'azure-devops-node-api/interfaces/WorkItemTrackingInterfaces'
 import { fields, FullProfile, WorkItem, WorkItemField, WorkItemType } from '../../@types/azure'
 
+const logger = createNamespaced('StartTask.API')
 
 const WORK_ITEM_LIMIT = 200
 
@@ -22,7 +23,7 @@ export const listTasks = async (parentId?: number): Promise<WorkItem[]> => {
      AND ( [Target].[System.WorkItemType] <> '') 
     MODE (Recursive)`
   } else {
-    query = `SELECT ${defaultFields} FROM WorkItems 
+    query = `SELECT * FROM WorkItems 
               WHERE [System.IterationPath] = @CurrentIteration
               AND [System.WorkItemType] IN GROUP 'Microsoft.TaskCategory'`
   }
@@ -94,7 +95,7 @@ export const getTask = async (id: number, fields?: WorkItemField[]): Promise<Wor
   return workItem
 }
 
-export const assignTask = async (id: number, profile: Profile & { emailAddress: string; displayName: string }) => {
+export const assignTask = async (id: number, profile: FullProfile) => {
   const witApi = await getApi().getWorkItemTrackingApi()
   return witApi.updateWorkItem(
     null,
@@ -115,8 +116,21 @@ export const assignTask = async (id: number, profile: Profile & { emailAddress: 
 
 export const getTaskColumns = async () => {
   const api = await getApi().getWorkApi()
+  // const boardId = getProjectKey('defaultProjectBoardId')
+  // if (!boardId) {
+  //   throw new Error('No default board')
+  // }
+
+  // //TODO: Figure out how to get the default board ?
+  // console.log(getTeamContext())
+  // const b = await api.getBoards(getTeamContext())
+  // console.log(b)
+  // const a = await api.getBoardColumns(getTeamContext(), boardId)
+  // console.log(a)
+
   return api.getColumns(getTeamContext())
 }
+// getTaskColumns().then((a) => console.log(a))
 
 export const moveTaskToColumn = async (id: number, column: string) => {
   const witApi = await getApi().getWorkItemTrackingApi()
