@@ -2,11 +2,12 @@
 
 ## [Unreleased]
 
-## [0.5.2] - 2022-10-12
+## [0.5.3] - 2022-10-12
 
 ### Fixes
 
-- Fixes infinite loading
+- Adds the change task logic to the newly created task when you add a task to a parent.
+- Adds bit better UX 
 
 ## [0.5.1] - 2022-10-12
 
