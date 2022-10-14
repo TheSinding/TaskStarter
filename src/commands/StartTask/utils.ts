@@ -2,7 +2,6 @@
 import * as config from '../../configuration'
 import { WorkItemType } from '../../@types/azure'
 import { sanitize } from '../../utils/sanitizeBranch'
-import { QuickPickItem } from 'vscode'
 import { ThemeIconName } from '../../@types/VscodeTypes'
 
 type BranchType = 'feature' | 'bugfix' | 'hotfix'
@@ -21,8 +20,8 @@ export const getWorkItemIcon = (type: WorkItemType) => {
 
 export const stripIcons = (str: string) => str.replaceAll(/\$\(.+?\)/g, '')
 
-export const nameBranch = (task: QuickPickItem, parentType: WorkItemType = 'Product Backlog Item') => {
-  let label = stripIcons(task.label)
+export const nameBranch = (title: string, id: string, parentType: WorkItemType = 'Product Backlog Item') => {
+  let label = title
 
   const customBranchRegex = config.getProjectKey('customBranchRegex')
   if (customBranchRegex) {
@@ -31,7 +30,7 @@ export const nameBranch = (task: QuickPickItem, parentType: WorkItemType = 'Prod
   }
   label = sanitize(label)
 
-  const branchName = `${getBranchType(parentType)}/${task.description}-${label}`
+  const branchName = `${getBranchType(parentType)}/${id}-${label}`
   return branchName
 }
 
