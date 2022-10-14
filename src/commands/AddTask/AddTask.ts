@@ -4,6 +4,9 @@ import { createNewTask } from './api'
 import * as configuration from '../../configuration'
 import { getProfile } from '../../api'
 import { WorkItem } from '../../@types/azure'
+import { changeTask } from '../StartTask/changeTask'
+import { getBuiltInGitApi } from '../../git'
+import { showProgressNotification } from '../../utils/showProgressNotification'
 
 export const COMMAND = 'taskstarter.addNewTask'
 const logger = createNamespaced(COMMAND)
@@ -39,6 +42,11 @@ export const addNewTask = () => {
   const commandHandler = async (parentItem: WorkItem) => {
     try {
       logger.debug('Adding a new task')
+      const gitApi = await getBuiltInGitApi()
+      if (!gitApi) throw new Error('Could not find git API')
+
+      const repository = gitApi.repositories[0]
+
       const title = await window.showInputBox({
         title: 'Add a title',
         placeHolder: '[Scope] Example title',
@@ -56,10 +64,21 @@ export const addNewTask = () => {
       const project = configuration.getProjectKey('devopsProject')
       const profile = await getProfile()
 
-      const createdTask = await createNewTask({ title, remainingWork, parent: parentItem }, project as string, profile)
+      const createdTask = await showProgressNotification(
+        'Creating new task, please wait...',
+        createNewTask({ title, remainingWork, parent: parentItem }, project as string, profile)
+      )
+
       window.showInformationMessage(`Task created`, OPEN_TASK_ITEM).then((value) => {
         if (value === 'Open task') return openTask(createdTask.id as number)
       })
+
+      const payload = {
+        id: createdTask.id?.toString() as string,
+        title: createdTask.fields?.['System.Title'] as string,
+      }
+
+      changeTask(payload, repository, parentItem)
     } catch (error) {
       logger.error(error)
       window.showErrorMessage('An error occurred creating the task')
