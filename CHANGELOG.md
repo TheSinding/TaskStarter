@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+
+## [0.6.0] - 2022-10-21
+
+### Fixes
+
+- Fixes a possible `undefined (id)` when you are starting a task
+
+### Adds
+
+- Adds the ability to list tasks from all iterations - Not just the current one
+
 ## [0.5.3] - 2022-10-12
 
 ### Fixes
