@@ -8,35 +8,40 @@ import { fields, FullProfile, WorkItem, WorkItemField, WorkItemType } from '../.
 
 const logger = createNamespaced('StartTask.API')
 
-const WORK_ITEM_LIMIT = 200
+const WORK_ITEM_REQUEST_LIMIT = 200
+const MAX_WORK_ITEMS_FETCH = 1000
 
 const defaultFields = `[${fields.join('], [')}]`
 
-export const listTasks = async (parentId?: number): Promise<WorkItem[]> => {
+export const listTasks = async (currentIteration: boolean, parentId?: number): Promise<WorkItem[]> => {
   logger.debug('Fetching tasks')
 
   let query = ''
   if (parentId) {
     query = `SELECT ${defaultFields} FROM WorkItemLinks
      WHERE ([Source].[System.Id] = ${parentId}) 
+     AND ([Source].[System.TeamProject] = @project)
      AND ([System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward') 
      AND ( [Target].[System.WorkItemType] <> '') 
     MODE (Recursive)`
   } else {
     query = `SELECT * FROM WorkItems 
-              WHERE [System.IterationPath] = @CurrentIteration
-              AND [System.WorkItemType] IN GROUP 'Microsoft.TaskCategory'`
+              WHERE ${currentIteration ? '[System.IterationPath] = @CurrentIteration AND ' : ''}
+              [System.WorkItemType] IN GROUP 'Microsoft.TaskCategory'
+              AND [System.TeamProject] = @project
+              ORDER BY [System.CreatedDate] DESC
+              ${!currentIteration ? `ASOF @StartOfYear` : ''}
+              `
   }
 
   return queryTasks(query)
 }
 
-export const listParents = async (): Promise<WorkItem[]> => {
+export const listParents = async (currentIteration: boolean): Promise<WorkItem[]> => {
   logger.debug('Fetching Parent items')
 
   const query = `SELECT ${defaultFields} FROM WorkItems
-	WHERE [System.IterationPath] = @CurrentIteration
-	AND 
+	WHERE ${currentIteration ? '[System.IterationPath] = @CurrentIteration AND ' : ''}
   (
       [System.WorkItemType] IN GROUP 'Microsoft.RequirementCategory' OR 
       [System.WorkItemType] IN GROUP 'Microsoft.BugCategory' 
@@ -46,6 +51,7 @@ export const listParents = async (): Promise<WorkItem[]> => {
 }
 
 const queryTasks = async (query: string): Promise<WorkItem[]> => {
+  logger.debug(`Executing following WIQL\n${query}`)
   const relationsReducer = (targets: WorkItemReference[], rel: WorkItemLink) => {
     if (rel.source && rel.target) {
       targets.push(rel.target)
@@ -56,13 +62,20 @@ const queryTasks = async (query: string): Promise<WorkItem[]> => {
   const witApi = await getApi().getWorkItemTrackingApi()
 
   const { workItems, workItemRelations, columns } = await witApi.queryByWiql({ query }, getTeamContext())
+  logger.debug(`Got ${workItems?.length} workItems and ${workItemRelations?.length} rels`)
 
   const items: WorkItemReference[] = [
     workItems?.length ? workItems : [],
     workItemRelations?.length ? workItemRelations.reduce(relationsReducer, []) : [],
   ].flat()
 
-  const chunks = chunk(items, WORK_ITEM_LIMIT)
+  if (items.length > MAX_WORK_ITEMS_FETCH) {
+    logger.info(
+      `Found more than ${MAX_WORK_ITEMS_FETCH} work items in query. Showing amount to ${MAX_WORK_ITEMS_FETCH}`
+    )
+  }
+
+  const chunks = chunk(items.slice(0, MAX_WORK_ITEMS_FETCH), WORK_ITEM_REQUEST_LIMIT)
 
   let result = (
     await Promise.all(

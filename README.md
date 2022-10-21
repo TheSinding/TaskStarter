@@ -1,21 +1,26 @@
+<p align="center">
+  <img alt="taskstarter-logo" src="./images/logo.png" height="300px"/>
+</p>
+
 # Task starter
 
-Makes it easy to start a tasks in Azure DevOps. 
+Makes it easy to start a tasks in Azure DevOps.
 No more going to the insanely slow page of dev.azure.com to find the task you'll need to work on.
-## Sales pitch 
+
+## Sales pitch
+
 Are you tired of having to go to your Azure DevOps sprint board to find the task you are suppose to work on just to get the ID of the task ?
-Do you name your feature branches like this: `feature/${taskID}-${taskName}`? 
+Do you name your feature branches like this: `feature/${taskID}-${taskName}`?
 
 Well it MIGHT just be your lucky day !
 
 This extension fixes that !
 
-Now you can start your task from the comfort of your lovely little memory-hogging vscode "ide". 
+Now you can start your task from the comfort of your lovely little memory-hogging vscode "ide".
 
 Just use the "Start new task" command, and it will display the tasks in the current iteration of your sprint!
 Find the task you want to work on and hit enter.
 It will magically create a new branch with the correct name for you, no need to intervene
-
 
 ## Features
 
@@ -33,14 +38,14 @@ The settings objects are structured as such in User Settings
 
 ```json
 "taskstarter.projectConfigs": [
-	{
-		"projectName": "NAME OF YOUR PROJECT"
-		// other settings
-	},
-	{
-		"projectName": "NAME OF ANOTHER PROJECT",
-		// other settings
-	}
+ {
+  "projectName": "NAME OF YOUR PROJECT"
+  // other settings
+ },
+ {
+  "projectName": "NAME OF ANOTHER PROJECT",
+  // other settings
+ }
 ]
 ```
 
@@ -59,13 +64,12 @@ The settings objects are structured as such in User Settings
 | `customBranchRegex`        | User settable regex used to sanitize the task name for naming the branch                         | `string`  |                           |          |
 | `inProgressColumnName`     | The column name of the 'in-progress' column.                                                     | `string`  |                           |          |
 
-
-
-
 ## How to
 
 First run the initialization process and input your DevOps PAT, organization, team and project - And ba-da-bing ba-da-boom, you are ready to use the extension.
+
 ## TODO
+
 See [the project board](https://github.com/users/TheSinding/projects/3)
 
 ## DevOps PAT description

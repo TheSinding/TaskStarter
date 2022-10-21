@@ -1,17 +1,18 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { commands, ThemeIcon, window } from 'vscode'
+import { commands, QuickPick, window } from 'vscode'
 import { listTasks } from './api'
 import { createNamespaced } from '../../logger'
 import { TaskPick } from './types'
 import { COMMAND as startFromParentCommand } from './startTaskFromParent'
-import { getWorkItemIcon } from './utils'
+import { getListAllPick, taskMapper, workItemFilter } from './utils'
 import { COMMAND as openOnDevOpsCommand } from '../openOnDevOps'
 import { COMMAND as addNewTaskCommand } from '../AddTask/AddTask'
-import { WorkItem, UserInfo } from '../../@types/azure'
+import { WorkItem } from '../../@types/azure'
 import { getBuiltInGitApi } from '../../git'
 import { createQuickPickHelper } from '../../utils/createQuickPickHelper'
 import { showProgressNotification } from '../../utils/showProgressNotification'
 import { changeTask } from './changeTask'
+import { Repository } from '../../@types/git'
 
 // TODO: Simplify this file, please
 
@@ -29,45 +30,23 @@ const ADD_NEW_TASK_ITEM: TaskPick = {
   command: addNewTaskCommand,
 }
 
-const taskMapper = (task: WorkItem): TaskPick => {
-  const assignedTo: UserInfo = task?.fields?.['System.AssignedTo']
-  const remainingWork = task?.fields?.['Microsoft.VSTS.Scheduling.RemainingWork']
-  const taskState = task?.fields?.['System.State']
-
-  const assignedToText = `Assigned to: ${assignedTo && assignedTo.displayName ? assignedTo.displayName : 'None'}`
-  const taskWeightText = `Task weight: ${remainingWork ? remainingWork : 'None'}`
-  const taskStateText = `State: ${taskState ? taskState : 'Unknown'}`
-  const buttons = [{ iconPath: new ThemeIcon('open-editors-view-icon'), tooltip: 'View on DevOps' }]
-
-  return {
-    label: `${getWorkItemIcon(task.fields?.['System.WorkItemType'])} ${task.fields!['System.Title']}`,
-    description: `${task.id}`,
-    detail: [assignedToText, taskWeightText, taskStateText].join(' | '),
-    taskName: task.fields!['System.Title'],
-    buttons,
-  }
-}
-
-const taskFilter = (task: WorkItem): Boolean => {
-  const filter = ['Product Backlog Item', 'Bug', 'Done']
-  const state = task?.fields?.['System.State']
-  const type = task?.fields?.['System.WorkItemType']
-  return !filter.includes(state) && !filter.includes(type)
-}
-
 export const startTask = () => {
-  const getTaskOptions = async (parentId?: number): Promise<TaskPick[]> => {
+  const getTaskOptions = async (onlyCurrentIteration: boolean, parentId?: number): Promise<TaskPick[]> => {
     try {
-      const _tasks = await listTasks(parentId)
+      const taskFilter = workItemFilter(['Bug', 'Done', 'Product Backlog Item'])
+      const _tasks = await listTasks(onlyCurrentIteration, parentId)
       const tasks = _tasks.filter(taskFilter).map(taskMapper).reverse()
-      return parentId ? [GO_BACK_ITEM, ADD_NEW_TASK_ITEM, ...tasks] : tasks
+      return parentId
+        ? [GO_BACK_ITEM, ADD_NEW_TASK_ITEM, ...tasks]
+        : [getListAllPick(onlyCurrentIteration, COMMAND), ...tasks]
     } catch (error) {
+      logger.error(error)
       if (parentId) return [GO_BACK_ITEM, ADD_NEW_TASK_ITEM]
       throw error
     }
   }
 
-  const commandHandler = async (parentItem: WorkItem) => {
+  const commandHandler = async (parentItem: WorkItem, onlyCurrentIteration: boolean = true) => {
     try {
       const gitApi = await getBuiltInGitApi()
       if (!gitApi) throw new Error('Could not find git API')
@@ -88,27 +67,24 @@ export const startTask = () => {
 
       picker.show()
 
-      const notificationTitle = `Getting tasks from ${parentItem.id ? 'parent' : 'current iteration'}`
+      let notificationTitle = 'Getting tasks from '
+      if (!onlyCurrentIteration) {
+        notificationTitle += 'all iterations'
+      } else {
+        notificationTitle += ` ${parentItem?.id ? 'parent' : 'current iteration'}`
+      }
 
-      picker.items = await showProgressNotification(notificationTitle, getTaskOptions(parentItem.id))
+      if (!onlyCurrentIteration) {
+        window.showInformationMessage('Note: Listing all tasks can take a while.')
+      }
+
+      picker.items = await showProgressNotification(
+        notificationTitle,
+        getTaskOptions(onlyCurrentIteration, parentItem?.id)
+      )
       picker.busy = false
 
-      picker.onDidAccept(() => {
-        if (!picker.selectedItems.length || !picker.enabled) return
-        const selectedItem = picker.selectedItems[0]
-
-        picker.enabled = false
-        picker.busy = true
-        picker.keepScrollPosition = true
-
-        const payload = { id: selectedItem.description as string, title: selectedItem.taskName as string }
-
-        if (selectedItem.command) {
-          return commands.executeCommand(selectedItem.command, parentItem)
-        }
-
-        changeTask(payload, repository, parentItem)
-      })
+      picker.onDidAccept(() => next(picker, onlyCurrentIteration, repository, parentItem))
 
       picker.onDidTriggerItemButton(({ item }) => commands.executeCommand(openOnDevOpsCommand, item.description))
     } catch (error: any) {
@@ -117,4 +93,31 @@ export const startTask = () => {
     }
   }
   return commands.registerCommand(COMMAND, commandHandler)
+}
+
+const next = (
+  picker: QuickPick<TaskPick>,
+  onlyCurrentIteration: boolean,
+  repository: Repository,
+  parentItem?: WorkItem
+) => {
+  if (!picker.selectedItems.length || !picker.enabled) return
+  const selectedItem = picker.selectedItems[0]
+
+  picker.enabled = false
+  picker.busy = true
+  picker.keepScrollPosition = true
+
+  const payload = { id: selectedItem.description as string, title: selectedItem.taskName as string }
+
+  switch (selectedItem.command) {
+    case 'taskstarter.addNewTask':
+      return commands.executeCommand(selectedItem.command, parentItem)
+    case 'taskstarter.startTask':
+      return commands.executeCommand(selectedItem.command, parentItem, !onlyCurrentIteration)
+    case 'taskstarter.startTaskFromParent':
+      return commands.executeCommand(selectedItem.command, onlyCurrentIteration)
+  }
+
+  changeTask(payload, repository, parentItem)
 }
