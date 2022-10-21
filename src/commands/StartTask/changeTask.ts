@@ -16,8 +16,8 @@ interface CreateTaskPayload {
   id: string
   title: string
 }
-export const changeTask = async (payload: CreateTaskPayload, repository: Repository, parentItem: WorkItem) => {
-  let _parentType: WorkItemType | undefined = parentItem.fields?.['System.WorkItemType']
+export const changeTask = async (payload: CreateTaskPayload, repository: Repository, parentItem?: WorkItem) => {
+  let _parentType: WorkItemType | undefined = parentItem?.fields?.['System.WorkItemType']
 
   if (!_parentType) _parentType = await getParentType(Number(payload.id))
 
