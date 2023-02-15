@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.6.1] - 2023-02-15
+
+### Fixes
+
+- Fixes getting git config keys
 
 ## [0.6.0] - 2022-10-21
 
