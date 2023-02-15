@@ -4,7 +4,8 @@ import { Repository } from './@types/git'
 
 import { getTask } from './commands/StartTask/api'
 import { WorkItem } from './@types/azure'
-import { CustomGitAPI, getBuiltInGitApi } from './git'
+import { getBuiltInGitApi } from './git'
+import { API as GitAPI } from './@types/git'
 import { createNamespaced } from './logger'
 
 const logger = createNamespaced('CurrentTaskTracker')
@@ -26,7 +27,7 @@ export class CurrentTaskTracker extends EventEmitter {
   private static _instance: CurrentTaskTracker
   private _repository: Repository | undefined
   private _currentTask: WorkItem | undefined
-  private _gitAPI?: CustomGitAPI
+  private _gitAPI?: GitAPI
   private _prevBranchName = ''
   private _TIMEOUT = 1000
 
@@ -60,8 +61,8 @@ export class CurrentTaskTracker extends EventEmitter {
 
     try {
       const configKey = getWorkItemStateKey(branchName)
-      const executedCmd = await this._gitAPI?.getConfigKey(this._repository?.rootUri.path, configKey)
-      const workItemId = executedCmd?.stdout.trim()
+      const executedCmd = await this._repository?.getConfig(configKey)
+      const workItemId = executedCmd
 
       if (!workItemId) {
         logger.debug('Found no current task')
