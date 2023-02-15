@@ -13,6 +13,26 @@ const MAX_WORK_ITEMS_FETCH = 1000
 
 const defaultFields = `[${fields.join('], [')}]`
 
+export const searchTasks = async (term: string): Promise<WorkItem[]> => {
+  const query = `SELECT ${defaultFields} FROM WorkItem
+     WHERE   
+      (
+        [System.WorkItemType] IN GROUP 'Microsoft.RequirementCategory' OR 
+        [System.WorkItemType] IN GROUP 'Microsoft.BugCategory' 
+      )
+      AND [System.TeamProject] = @project
+      AND (
+        [System.Title] contains '${term}'
+        OR 
+        [System.AssignedTo] contains '${term}'
+      )
+      AND
+      [System.State] <> 'Done'
+      ORDER BY [System.CreatedDate] DESC`
+
+  return queryTasks(query)
+}
+
 export const listTasks = async (currentIteration: boolean, parentId?: number): Promise<WorkItem[]> => {
   logger.debug('Fetching tasks')
 

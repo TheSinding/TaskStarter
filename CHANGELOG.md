@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2023-02-15
+
+### Adds
+
+- Adds the ability to search for a task in the entire project, not just the current iteration
+
+## [0.6.1] - 2023-02-15
+
+### Fixes
+
+- Fixes getting git config keys
+
 ## [0.6.1] - 2023-02-15
 
 ### Fixes
