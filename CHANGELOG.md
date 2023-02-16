@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.7.1] - 2023-02-16
+
+### Fixes
+
+- Accidentally removed finish task command, this adds it back in
+
 ## [0.7.0] - 2023-02-15
 
 ### Adds
