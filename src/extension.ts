@@ -37,6 +37,7 @@ export function activate(context: vscode.ExtensionContext) {
     startTaskFromParent(),
     openOnDevOps(),
     initTaskReference(),
+    finishTask(),
     searchTasks()
   )
 
