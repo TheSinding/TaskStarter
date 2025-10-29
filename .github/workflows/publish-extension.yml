@@ -16,3 +16,9 @@ jobs:
         run: npm ci
       - name: Publish VS Code Extension
         run: npx vsce publish -p ${{ secrets.VS_MARKETPLACE_TOKEN}}
+      - name: GitHub Releases
+        uses: fnkr/github-action-ghr@v1.3
+        env:
+          GHR_COMPRESS: xz
+          GHR_PATH: build/
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

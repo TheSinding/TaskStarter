@@ -6,26 +6,32 @@ import { logger } from '../../logger'
 import { ActivePullRequestExistsError } from './errors/ActivePullRequestExistsError'
 
 export interface CreatePullRequest {
-  taskId: number,
-  title: string,
-  repository: GitRepository,
-  source: string,
+  taskId?: number
+  title: string
+  repository: GitRepository
+  source: string
   target: string
 }
 
-export const createPullRequest = async (
-  { taskId, title, repository, source, target }: CreatePullRequest
-): Promise<GitPullRequest> => {
+export const createPullRequest = async ({
+  taskId,
+  title,
+  repository,
+  source,
+  target,
+}: CreatePullRequest): Promise<GitPullRequest> => {
   try {
-    const devopsGitApi = await getApi().getGitApi()
+    const devopsGitApi = await (await getApi()).getGitApi()
     const project = config.getProjectKey('devopsProject')
 
-    const pullRequest: GitPullRequest = {
+    const basicPullRequest: GitPullRequest = {
       title,
       isDraft: true,
       repository,
       targetRefName: `refs/heads/${target}`,
       sourceRefName: `refs/heads/${source}`,
+    }
+    const workItem = {
       workItemRefs: [
         {
           id: String(taskId),
@@ -33,7 +39,11 @@ export const createPullRequest = async (
       ],
     }
 
-    return await devopsGitApi.createPullRequest(pullRequest, repository.id as string, project)
+    return await devopsGitApi.createPullRequest(
+      !!taskId ? basicPullRequest : { ...basicPullRequest, ...workItem },
+      repository.id as string,
+      project
+    )
   } catch (error) {
     logger.error(error)
     if (error instanceof Error && error.message.includes('active pull request')) {
@@ -44,11 +54,11 @@ export const createPullRequest = async (
 }
 
 export const getBranches = async (repository: Required<GitRepository>) => {
-  const devopsGitApi = await getApi().getGitApi()
+  const devopsGitApi = await (await getApi()).getGitApi()
   return devopsGitApi.getBranches(repository.id)
 }
 
 export const getRepositories = async (devopsProject: string): Promise<GitRepository[]> => {
-  const devopsGitApi = await getApi().getGitApi()
+  const devopsGitApi = await (await getApi()).getGitApi()
   return devopsGitApi.getRepositories(devopsProject)
 }

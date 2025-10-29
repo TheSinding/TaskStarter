@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { workspace, ConfigurationTarget, WorkspaceConfiguration } from 'vscode'
+import { workspace, ConfigurationTarget, WorkspaceConfiguration, SecretStorage, ExtensionContext } from 'vscode'
 
 export type ConfigurationKey = `${ConfigurationKeys}`
 
@@ -11,15 +11,21 @@ export enum ConfigurationKeys {
 
 interface ProjectConfig {
   projectName?: string
-  devopsPATToken?: string
   devopsOrganization?: string
   devopsTeam?: string
   devopsProject?: string
   customBranchRegex?: string
-  devopsInstanceURL?: string
   autoMoveTaskToInProgress?: boolean
   autoAssignTask?: boolean
   inProgressColumnName?: string
+  defaultProjectBoardId?: string
+  devopsInstanceURL?: string
+}
+
+let secretStore: SecretStorage | null = null
+
+export const setSecretStore = (context: ExtensionContext) => {
+  secretStore = context.secrets
 }
 
 const getProjectName = () => {
@@ -88,4 +94,36 @@ export const getProjectKey = <K extends keyof ProjectConfig>(
     return defaultValue as Required<ProjectConfig>[K]
   }
   return projectConfig[section]
+}
+
+interface SecureProjectKeys {
+  devopsPATToken?: string
+}
+export const getSecureKey = async <K extends keyof SecureProjectKeys>(key: K): Promise<SecureProjectKeys[K]> => {
+  if (!secretStore) {
+    throw new Error('Secrets store must be initialized')
+  }
+  const projectName = getProjectName()
+  if (!projectName) {
+    throw new Error('No project found')
+  }
+  try {
+    const a = await secretStore.get(`${projectName}.${key}`)
+    console.log(a)
+  } catch (error) {
+    console.log('what the fuck')
+  }
+
+  return secretStore.get(`${projectName}.${key}`)
+}
+
+export const setSecureKey = <K extends keyof SecureProjectKeys>(key: K, value: string): Thenable<void> => {
+  if (!secretStore) {
+    throw new Error('Secrets store must be initialized')
+  }
+  const projectName = getProjectName()
+  if (!projectName) {
+    throw new Error('No project found')
+  }
+  return secretStore.store(`${projectName}.${key}`, value)
 }

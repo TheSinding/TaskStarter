@@ -13,11 +13,11 @@ export const getTeamContext = (): TeamContext => ({
   team: config.getProjectKey('devopsTeam'),
   project: config.getProjectKey('devopsProject'),
 })
-export const getApi = (instance: string = DEFAULT_INSTANCE_URL): WebApi => {
-  if (!config.getProjectKey('devopsPATToken')) {
+export const getApi = async (instance: string = DEFAULT_INSTANCE_URL): Promise<WebApi> => {
+  if (!config.getSecureKey('devopsPATToken')) {
     throw new Error('DevOps PAT Token not set')
   }
-  const token = config.getProjectKey('devopsPATToken') as string
+  const token = (await config.getSecureKey('devopsPATToken')) as string
   const customInstance = config.getProjectKey('devopsInstanceURL') as string
   const organization = config.getProjectKey('devopsOrganization')
   const authHandler = getPersonalAccessTokenHandler(token)
@@ -28,7 +28,7 @@ export const getApi = (instance: string = DEFAULT_INSTANCE_URL): WebApi => {
 }
 
 async function _profile(id: string = 'me') {
-  return (await getApi(VSSPS_INSTANCE).getProfileApi()).getProfile(id) as Promise<
+  return (await (await getApi(VSSPS_INSTANCE)).getProfileApi()).getProfile(id) as Promise<
     Profile & { displayName: string; emailAddress: string }
   >
 }
@@ -37,7 +37,7 @@ export const getProfile = moize(_profile)
 export const listProjects = async (): Promise<TeamProjectReference[]> => {
   try {
     logger.debug('Fetching projects')
-    const coreApi = await getApi().getCoreApi()
+    const coreApi = await (await getApi()).getCoreApi()
     const projects = await coreApi.getProjects()
     return projects
   } catch (error) {
@@ -49,7 +49,7 @@ export const listProjects = async (): Promise<TeamProjectReference[]> => {
 export const listTeams = async (): Promise<WebApiTeam[]> => {
   try {
     logger.debug('Fetching teams')
-    const coreApi = await getApi().getCoreApi()
+    const coreApi = await (await getApi()).getCoreApi()
     const teams = await coreApi.getAllTeams()
     return teams
   } catch (error) {

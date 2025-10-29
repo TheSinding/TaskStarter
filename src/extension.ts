@@ -15,13 +15,16 @@ import { openOnDevOps } from './commands/openOnDevOps'
 import { logger } from './logger'
 import { finishTask } from './commands/FinishTask/finishTask'
 import { CurrentTaskTracker } from './CurrentTaskTracker'
+import { moveTaskToInProgress } from './commands/MoveTaskToInProgress/MoveTaskToInProgress'
 import { addNewTask } from './commands/AddTask/AddTask'
 import { searchTasks } from './commands/StartTask/searchTask'
+import { createPullRequestCommand } from './commands/CreatePullRequest/createPullRequest'
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   logger.debug('TaskStarter is now active!')
+  config.setSecretStore(context)
   initExt()
   CurrentTaskTracker.init()
 
@@ -31,6 +34,7 @@ export function activate(context: vscode.ExtensionContext) {
     setDevOpsInstanceURL(),
     setDevopsProject(),
     setDevopsTeam(),
+    moveTaskToInProgress(),
     runInit(),
     addNewTask(),
     startTask(),
@@ -38,6 +42,7 @@ export function activate(context: vscode.ExtensionContext) {
     openOnDevOps(),
     initTaskReference(),
     finishTask(),
+    createPullRequestCommand(),
     searchTasks()
   )
 
@@ -56,7 +61,11 @@ const initExt = () => {
 
   if (!isInitialized() && !config.get('hideInitPrompt', false)) {
     vscode.window
-      .showInformationMessage('Task starter - Not initialized for this project', RUN_INIT, DONT_SHOW_AGAIN)
+      .showInformationMessage(
+        'Task starter - Not initialized for this project',
+        RUN_INIT,
+        DONT_SHOW_AGAIN
+      )
       .then((selection) => {
         if (selection === RUN_INIT) vscode.commands.executeCommand(RUN_INIT_COMMAND)
         if (selection === DONT_SHOW_AGAIN) config.update('hideInitPrompt', true, true)
@@ -68,8 +77,8 @@ const setInitialized = () => {
   vscode.commands.executeCommand('setContext', 'taskstarter.isInitialized', isInitialized())
 }
 
-export const isInitialized = (): boolean =>
-  !!config.getProjectKey('devopsPATToken') &&
+export const isInitialized = async (): Promise<boolean> =>
+  !!config.getSecureKey('devopsPATToken') &&
   !!config.getProjectKey('devopsProject') &&
   !!config.getProjectKey('devopsTeam') &&
   !!config.getProjectKey('devopsOrganization')

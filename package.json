@@ -175,6 +175,12 @@
         "title": "Finish current task",
         "category": "Task starter",
         "enablement": "taskstarter.isInitialized"
+      },
+      {
+        "command": "taskstarter.createPullRequest",
+        "title": "Create a pullrequest",
+        "category": "Task starter",
+        "enablement": "taskstarter.isInitialized"
       }
     ],
     "menus": {
@@ -216,8 +222,7 @@
     "vsce": "^2.8.0"
   },
   "dependencies": {
-    "@types/axios": "^0.14.0",
-    "axios": "^0.27.2",
+    "axios": "1.6.5",
     "azure-devops-node-api": "^11.1.1",
     "fast-memoize": "^2.5.2",
     "lodash": "^4.17.21",

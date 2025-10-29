@@ -11,7 +11,7 @@ import { createNamespaced } from './logger'
 const logger = createNamespaced('CurrentTaskTracker')
 
 interface CurrentTaskEvents {
-  currentTaskChanged: (workItem?: WorkItem) => void
+  currentTaskChanged: (workItem?: WorkItem, pullRequestUrl?: string) => void
   fetchingCurrentTask: () => void
 }
 
@@ -22,11 +22,13 @@ export declare interface CurrentTaskTracker {
 }
 
 export const getWorkItemStateKey = (branchName: string) => `branch.${branchName}.workitemid`
+export const getPullRequestStateKey = (branchName: string) => `branch.${branchName}.pullrequesturl`
 
 export class CurrentTaskTracker extends EventEmitter {
   private static _instance: CurrentTaskTracker
   private _repository: Repository | undefined
   private _currentTask: WorkItem | undefined
+  private _currentPullRequestUrl: string | undefined
   private _gitAPI?: GitAPI
   private _prevBranchName = ''
   private _TIMEOUT = 1000
@@ -61,14 +63,19 @@ export class CurrentTaskTracker extends EventEmitter {
 
     try {
       const configKey = getWorkItemStateKey(branchName)
+      const prConfigKey = getPullRequestStateKey(branchName)
       const executedCmd = await this._repository?.getConfig(configKey)
+      const prUrlCmd = await this._repository?.getConfig(prConfigKey)
       const workItemId = executedCmd
+      const pullRequestUrl = prUrlCmd
 
       if (!workItemId) {
         logger.debug('Found no current task')
         this._unsetCurrentTask()
       } else {
-        if (this._currentTask?.id !== Number(workItemId)) this._setCurrentTask(workItemId)
+        if (this._currentTask?.id !== Number(workItemId) || this._currentPullRequestUrl !== pullRequestUrl) {
+          this._setCurrentTask(workItemId, pullRequestUrl)
+        }
       }
     } catch (error) {
       logger.error(error, 'Failed to get work task ID')
@@ -78,21 +85,23 @@ export class CurrentTaskTracker extends EventEmitter {
 
   private async _unsetCurrentTask() {
     this._currentTask = undefined
-    this.emit('currentTaskChanged', this._currentTask)
+    this._currentPullRequestUrl = undefined
+    this.emit('currentTaskChanged', this._currentTask, this._currentPullRequestUrl)
   }
 
-  private async _setCurrentTask(taskId: string) {
+  private async _setCurrentTask(taskId: string, pullRequestUrl?: string) {
     this.emit('fetchingCurrentTask')
     const task = await getTask(Number(taskId))
 
     if (task) {
       logger.debug(`Current task: ${task.fields?.['System.Title']}`)
       this._currentTask = task
+      this._currentPullRequestUrl = pullRequestUrl
     } else {
       logger.error('Failed to find the current task')
       this._unsetCurrentTask()
     }
-    this.emit('currentTaskChanged', this._currentTask)
+    this.emit('currentTaskChanged', this._currentTask, this._currentPullRequestUrl)
   }
 
   public static get instance(): CurrentTaskTracker {
@@ -102,6 +111,21 @@ export class CurrentTaskTracker extends EventEmitter {
 
   public get currentTask(): WorkItem | undefined {
     return this._currentTask
+  }
+
+  public get currentPullRequestUrl(): string | undefined {
+    return this._currentPullRequestUrl
+  }
+
+  public async setPullRequestUrl(pullRequestUrl: string): Promise<void> {
+    if (!this._repository) return
+    const branchName = this._repository.state.HEAD?.name
+    if (!branchName) return
+
+    const prConfigKey = getPullRequestStateKey(branchName)
+    await this._repository.setConfig(prConfigKey, pullRequestUrl)
+    this._currentPullRequestUrl = pullRequestUrl
+    this.emit('currentTaskChanged', this._currentTask, this._currentPullRequestUrl)
   }
 
   public static init(): void {

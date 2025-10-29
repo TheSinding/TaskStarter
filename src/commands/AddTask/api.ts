@@ -17,7 +17,7 @@ export const createNewTask = async (
   project: string,
   profile: FullProfile
 ): Promise<WorkItem> => {
-  const witApi = await getApi().getWorkItemTrackingApi()
+  const witApi = await (await getApi()).getWorkItemTrackingApi()
   const operations = [
     { op: 'add', path: '/fields/System.Title', from: null, value: title },
     {

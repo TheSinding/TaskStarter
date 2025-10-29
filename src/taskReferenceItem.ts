@@ -15,8 +15,8 @@ export const init = (): StatusBarItem => {
     workspace.onDidChangeWorkspaceFolders(setVisibility)
   }
 
-  const setVisibility = () => {
-    if (isInitialized()) {
+  const setVisibility = async () => {
+    if (await isInitialized()) {
       statusBarItem.show()
     } else {
       statusBarItem.hide()
@@ -27,16 +27,23 @@ export const init = (): StatusBarItem => {
     statusBarItem.text = `$(loading~spin) Loading...`
   }
 
-  const changeTitle = async (currentTask?: WorkItem) => {
+  const changeTitle = async (currentTask?: WorkItem, pullRequestUrl?: string) => {
     if (!currentTask) {
       statusBarItem.text = 'No current task'
       statusBarItem.tooltip = undefined
       statusBarItem.command = undefined
     } else {
-      const title = `$(symbol-task) ${currentTask.id} - ${currentTask.fields?.['System.Title']}`
+      const prIcon = pullRequestUrl ? '$(git-pull-request) ' : ''
+      const title = `${prIcon}$(symbol-task) ${currentTask.id} - ${currentTask.fields?.['System.Title']}`
       statusBarItem.text = title
-      statusBarItem.tooltip = 'Open on DevOps'
-      statusBarItem.command = { title: 'Open on devops', command: openOnDevOpsCommand, arguments: [currentTask.id] }
+      
+      if (pullRequestUrl) {
+        statusBarItem.tooltip = 'Open Pull Request'
+        statusBarItem.command = { title: 'Open pull request', command: 'vscode.open', arguments: [pullRequestUrl] }
+      } else {
+        statusBarItem.tooltip = 'Open on DevOps'
+        statusBarItem.command = { title: 'Open on devops', command: openOnDevOpsCommand, arguments: [currentTask.id] }
+      }
     }
   }
 

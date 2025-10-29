@@ -79,7 +79,7 @@ const queryTasks = async (query: string): Promise<WorkItem[]> => {
     return targets
   }
 
-  const witApi = await getApi().getWorkItemTrackingApi()
+  const witApi = await (await getApi()).getWorkItemTrackingApi()
 
   const { workItems, workItemRelations, columns } = await witApi.queryByWiql({ query }, getTeamContext())
   logger.debug(`Got ${workItems?.length} workItems and ${workItemRelations?.length} rels`)
@@ -118,7 +118,7 @@ const queryTasks = async (query: string): Promise<WorkItem[]> => {
 }
 
 export const getTask = async (id: number, fields?: WorkItemField[]): Promise<WorkItem> => {
-  const witApi = await getApi().getWorkItemTrackingApi()
+  const witApi = await (await getApi()).getWorkItemTrackingApi()
 
   const workItem = (await witApi.getWorkItem(id, fields)) as WorkItem
   if (!workItem) {
@@ -129,7 +129,7 @@ export const getTask = async (id: number, fields?: WorkItemField[]): Promise<Wor
 }
 
 export const assignTask = async (id: number, profile: FullProfile) => {
-  const witApi = await getApi().getWorkItemTrackingApi()
+  const witApi = await (await getApi()).getWorkItemTrackingApi()
   return witApi.updateWorkItem(
     null,
     [
@@ -148,7 +148,7 @@ export const assignTask = async (id: number, profile: FullProfile) => {
 }
 
 export const getTaskColumns = async () => {
-  const api = await getApi().getWorkApi()
+  const api = await (await getApi()).getWorkApi()
   // const boardId = getProjectKey('defaultProjectBoardId')
   // if (!boardId) {
   //   throw new Error('No default board')
@@ -166,7 +166,7 @@ export const getTaskColumns = async () => {
 // getTaskColumns().then((a) => console.log(a))
 
 export const moveTaskToColumn = async (id: number, column: string) => {
-  const witApi = await getApi().getWorkItemTrackingApi()
+  const witApi = await (await getApi()).getWorkItemTrackingApi()
   witApi.updateWorkItem(
     null,
     [

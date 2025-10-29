@@ -60,7 +60,7 @@ export const finishTask = () => {
       if (!localRepository) return
       if (!localRepository.state.HEAD?.upstream) throw new NoUpstreamRefError()
       if (!currentTask) throw new NoCurrentTaskFoundError()
-      if (!project) throw new MissingConfigurationKeysError("project")
+      if (!project) throw new MissingConfigurationKeysError('project')
 
       const remoteRepositories = await getRepositories(project)
       if (!remoteRepositories.length) throw new Error('No remote repositories found')
@@ -94,10 +94,10 @@ export const finishTask = () => {
         title: pullRequestTitle,
         repository: remoteRepository,
         source: localRepository.state!.HEAD.name as string,
-        target: targetBranchPick.branch.name as string
+        target: targetBranchPick.branch.name as string,
       }
 
-      const pullRequest = await showProgressNotification("Creating pull request", createPullRequest(pullRequestObject))
+      const pullRequest = await showProgressNotification('Creating pull request', createPullRequest(pullRequestObject))
 
       const repositoryName = pullRequest.repository?.name
       const id = pullRequest.pullRequestId
